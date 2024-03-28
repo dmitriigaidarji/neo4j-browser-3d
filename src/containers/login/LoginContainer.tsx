@@ -2,25 +2,19 @@ import "./login.scss";
 import React, { FormEvent, useCallback, useContext, useState } from "react";
 import { AuthContext } from "../../providers/AuthProvider";
 
-interface IProps {
-  onSubmit: () => {};
-}
 type IKey = "url" | "username" | "password" | "database" | "protocol";
 const requiredKeys: IKey[] = ["url"];
-// const allKeys: IKey[] = ["url", "username", "password", "database", "protocol"];
 function LoginContainer() {
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState<IKey | "">("");
   const [connectionError, setConnectionError] = React.useState("");
-  const {
-    actions: { connect },
-  } = useContext(AuthContext);
+  const { connect } = useContext(AuthContext);
 
   return (
-    <div id={"LoginContainer"} className={"content"}>
+    <div className={"loginContainer content"}>
       <fieldset disabled={loading}>
         <form
-          className={"form"}
+          className={"box"}
           onSubmit={useCallback(
             (event: FormEvent<HTMLFormElement>) => {
               event.preventDefault();
@@ -43,10 +37,16 @@ function LoginContainer() {
 
               connect({
                 ...parsed,
-              }).catch((e) => {
-                setLoading(false);
-                setConnectionError(e.message);
-              });
+              })
+                .catch((e) => {
+                  setLoading(false);
+                  setConnectionError(e.message);
+                })
+                .then(() => {
+                  localStorage.setItem("url", parsed.url);
+                  localStorage.setItem("database", parsed.database);
+                  localStorage.setItem("username", parsed.username);
+                });
             },
             [connect],
           )}
@@ -68,6 +68,7 @@ function LoginContainer() {
                   name={"url"}
                   type="text"
                   placeholder="URL"
+                  defaultValue={localStorage.getItem("url") ?? undefined}
                 />
               </div>
             </div>
@@ -84,6 +85,7 @@ function LoginContainer() {
                 name={"database"}
                 type="text"
                 placeholder="Database name"
+                defaultValue={localStorage.getItem("database") ?? undefined}
               />
               <span className="icon is-small is-left">
                 <i className="fas fa-database"></i>
@@ -99,6 +101,7 @@ function LoginContainer() {
                 name={"username"}
                 type="text"
                 placeholder="Username"
+                defaultValue={localStorage.getItem("username") ?? undefined}
               />
               <span className="icon is-small is-left">
                 <i className="fas fa-user"></i>
