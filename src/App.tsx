@@ -1,6 +1,7 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
+import {CypherEditor} from "@neo4j-cypher/react-codemirror";
 
 function App() {
   return (
@@ -19,6 +20,9 @@ function App() {
           Learn React
         </a>
       </header>
+      <div>
+        <CypherEditor/>
+      </div>
     </div>
   );
 }
