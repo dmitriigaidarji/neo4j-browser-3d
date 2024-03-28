@@ -69,16 +69,18 @@ function AuthProvider({ children }: PropsWithChildren) {
     if (!driver) {
       setServerInfo(null);
     }
-    return function cleanup() {
-      if (driver) {
-        driver.close();
-      }
-    };
+    // return function cleanup() {
+    //   if (driver) {
+    //     driver.close();
+    //   }
+    // };
   }, [driver]);
   return (
     <AuthContext.Provider value={value}>
-      {driver ? (
-        <SessionProvider driver={driver}>{children}</SessionProvider>
+      {driver && serverInfo ? (
+        <SessionProvider driver={driver} database={serverInfo.database}>
+          {children}
+        </SessionProvider>
       ) : (
         <LoginContainer />
       )}
