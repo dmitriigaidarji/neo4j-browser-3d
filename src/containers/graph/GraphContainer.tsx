@@ -5,39 +5,78 @@ import { cloneDeep } from "lodash-es";
 import {
   CSS2DRenderer,
   CSS2DObject,
+  // @ts-ignore
 } from "three/addons/renderers/CSS2DRenderer.js";
+import SpriteText from "three-spritetext";
+function createGraph() {
+  const graph = ForceGraph3D({
+    extraRenderers: [new CSS2DRenderer() as unknown as any],
+  })
+    .nodeId("elementId")
+    .linkSource("startNodeElementId")
+    .linkTarget("endNodeElementId")
+    .nodeAutoColorBy((t) => {
+      return (t as unknown as INode).labels.join(",");
+    })
+    .linkAutoColorBy((t) => (t as unknown as ILink).type)
+    .linkWidth(0.5)
+    .nodeResolution(16)
+    .linkDirectionalArrowLength(3.5)
+    .linkDirectionalArrowRelPos(1)
+    .linkCurvature("curvature")
+    .linkCurveRotation("rotation")
+    .linkDirectionalParticles(2)
+    .nodeThreeObject((node: any) => {
+      const nodeEl = document.createElement("div");
+      const properties = (node as any).properties;
+      nodeEl.textContent =
+        properties.name ?? properties.title ?? (node as any).elementId;
+      nodeEl.style.color = (node as unknown as any).color ?? "";
+      nodeEl.className = "node-label";
+      return new CSS2DObject(nodeEl);
+    })
+    .nodeThreeObjectExtend(true)
+    .onNodeClick((node: any) => {
+      // Aim at node from outside it
+      const distance = 40;
+      const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
 
+      const newPos =
+        node.x || node.y || node.z
+          ? {
+              x: node.x * distRatio,
+              y: node.y * distRatio,
+              z: node.z * distRatio,
+            }
+          : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+
+      graph.cameraPosition(
+        newPos, // new position
+        node, // lookAt ({ x, y, z })
+        2000, // ms transition duration
+      );
+    })
+    .linkThreeObjectExtend(true)
+    .linkThreeObject((link: any) => {
+      // extend link with text sprite
+      const sprite = new SpriteText((link as unknown as ILink).type);
+      sprite.color = "lightgrey";
+      sprite.textHeight = 1.5;
+      return sprite;
+    })
+    .linkPositionUpdate((sprite, { start, end }) => {
+      const middlePos: { [key: string]: number } = {};
+      (["x", "y", "z"] as const).forEach((c) => {
+        middlePos[c] = start[c] + (end[c] - start[c]) / 2;
+      });
+      // Position sprite
+      Object.assign(sprite.position, middlePos);
+    });
+  return graph;
+}
 function GraphContainer({ graph }: { graph: IGraph }) {
   const graphDomRef = useRef<HTMLDivElement>(null);
-  const graphInstance = useMemo(
-    () =>
-      ForceGraph3D({
-        extraRenderers: [new CSS2DRenderer() as unknown as any],
-      })
-        .nodeId("elementId")
-        .linkSource("startNodeElementId")
-        .linkTarget("endNodeElementId")
-        .nodeAutoColorBy((t) => {
-          return (t as unknown as INode).labels.join(",");
-        })
-        .linkAutoColorBy((t) => (t as unknown as ILink).type)
-        .linkWidth(1)
-        .nodeResolution(16)
-        .linkDirectionalArrowLength(3.5)
-        .linkDirectionalArrowRelPos(1)
-        .linkCurvature(0.05)
-        .nodeThreeObject((node) => {
-          const nodeEl = document.createElement("div");
-          const properties = (node as any).properties;
-          nodeEl.textContent =
-            properties.name ?? properties.title ?? (node as any).elementId;
-          nodeEl.style.color = (node as unknown as any).color ?? "";
-          nodeEl.className = "node-label";
-          return new CSS2DObject(nodeEl);
-        })
-        .nodeThreeObjectExtend(true),
-    [],
-  );
+  const graphInstance = useMemo(() => createGraph(), []);
   useEffect(() => {
     if (graphDomRef.current) {
       graphInstance(graphDomRef.current)
@@ -56,7 +95,8 @@ function GraphContainer({ graph }: { graph: IGraph }) {
   }, [graphDomRef, graphInstance]);
 
   useEffect(() => {
-    graphInstance.graphData(cloneDeep(graph));
+    const cloned = cloneDeep(graph);
+    graphInstance.graphData(cloned);
   }, [graph, graphInstance]);
 
   console.log(graph);

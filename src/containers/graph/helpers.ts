@@ -10,6 +10,8 @@ export interface ILink {
   elementId: string;
   properties: any;
   type: string;
+  curvature: number;
+  rotation: number;
 }
 export interface IGraph {
   nodes: INode[];
