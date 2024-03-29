@@ -36,6 +36,9 @@ function AuthProvider({ children }: PropsWithChildren) {
       const driver = neo4j.driver(
         protocol + url,
         neo4j.auth.basic(username, password),
+        {
+          disableLosslessIntegers: true,
+        },
       );
       return driver.verifyConnectivity({ database }).then((s) => {
         setServerInfo({

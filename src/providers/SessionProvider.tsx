@@ -65,6 +65,7 @@ function SessionProvider({
               signature: t.name,
             })),
         });
+        tx.close();
       }),
     );
 
