@@ -7,11 +7,15 @@ import {
   CSS2DObject,
   // @ts-ignore
 } from "three/addons/renderers/CSS2DRenderer.js";
+// @ts-ignore
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+
 import SpriteText from "three-spritetext";
 function createGraph() {
   const graph = ForceGraph3D({
     extraRenderers: [new CSS2DRenderer() as unknown as any],
   })
+    .backgroundColor("#000003")
     .nodeId("elementId")
     .linkSource("startNodeElementId")
     .linkTarget("endNodeElementId")
@@ -72,11 +76,13 @@ function createGraph() {
       // Position sprite
       Object.assign(sprite.position, middlePos);
     });
+
   return graph;
 }
 function GraphContainer({ graph }: { graph: IGraph }) {
   const graphDomRef = useRef<HTMLDivElement>(null);
   const graphInstance = useMemo(() => createGraph(), []);
+
   useEffect(() => {
     if (graphDomRef.current) {
       graphInstance(graphDomRef.current)
@@ -87,10 +93,17 @@ function GraphContainer({ graph }: { graph: IGraph }) {
             graphDomRef.current.getBoundingClientRect().height - 200,
           ),
         );
+      console.log("bloom");
+      const bloomPass = new UnrealBloomPass();
+      bloomPass.strength = 1.5;
+      bloomPass.radius = 1;
+      bloomPass.threshold = 0;
+      graphInstance.postProcessingComposer().addPass(bloomPass);
     }
     return function cleanup() {
       const r = graphInstance.renderer();
       r?.dispose();
+      graphInstance._destructor();
     };
   }, [graphDomRef, graphInstance]);
 
