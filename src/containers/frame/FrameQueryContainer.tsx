@@ -1,6 +1,8 @@
 import { IFrameQueryResult } from "./FrameContainer";
 import { memo, useCallback, useMemo, useState, FC } from "react";
 import JSONDisplay from "./JSONDisplay";
+import GraphContainer from "../graph/GraphContainer";
+import { processQueryResultsForGraph } from "../graph/helpers";
 
 interface IProps {
   data: IFrameQueryResult[];
@@ -15,12 +17,12 @@ interface IMode {
   text: string;
   icon: string;
 }
+const graphMode: IMode = {
+  value: TabMode.graph,
+  text: "Graph",
+  icon: "diagram-project",
+};
 const modes: IMode[] = [
-  {
-    value: TabMode.graph,
-    text: "Graph",
-    icon: "diagram-project",
-  },
   {
     value: TabMode.json,
     text: "JSON",
@@ -30,15 +32,22 @@ const modes: IMode[] = [
 
 //match (n) return n limit 2
 function FrameQueryContainer({ data }: IProps) {
-  const [mode, setMode] = useState(TabMode.graph);
+  const graph = useMemo(() => {
+    return processQueryResultsForGraph(data);
+  }, [data]);
+
+  const showGraphTab = graph.nodes.length > 0;
+
+  const [mode, setMode] = useState(showGraphTab ? TabMode.graph : TabMode.json);
+
   const node = useMemo(() => {
     switch (mode) {
       case TabMode.json:
         return <JSONDisplay data={data} />;
       case TabMode.graph:
-        return <p>graph</p>;
+        return <GraphContainer graph={graph} />;
     }
-  }, [data, mode]);
+  }, [data, mode, graph]);
   const handleTabClick = useCallback((newMode: TabMode) => {
     setMode(newMode);
   }, []);
@@ -46,6 +55,14 @@ function FrameQueryContainer({ data }: IProps) {
     <div className={"box block"}>
       <div className="tabs is-boxed">
         <ul>
+          {showGraphTab && (
+            <Tab
+              item={graphMode}
+              selected={mode}
+              onClick={handleTabClick}
+              key={graphMode.value}
+            />
+          )}
           {modes.map((item) => (
             <Tab
               item={item}
