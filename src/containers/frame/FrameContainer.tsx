@@ -35,7 +35,7 @@ function FrameContainer({
     if (value && data) {
       onUpdate({ query: value, result: data });
     }
-  }, [value, data]);
+  }, [value, data, onUpdate]);
 
   const handleSubmit = useCallback(async () => {
     setLoading(true);

@@ -89,9 +89,9 @@ const Tab: FC<{
       className={value === selected ? "is-active" : ""}
       onClick={useCallback(() => {
         onClick(value);
-      }, [value])}
+      }, [value, onClick])}
     >
-      <a>
+      <a href={"#!"}>
         <span className="icon is-small">
           <i className={`fas fa-${icon}`} aria-hidden="true"></i>
         </span>

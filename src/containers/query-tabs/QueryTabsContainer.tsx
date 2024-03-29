@@ -80,7 +80,7 @@ function QueryTabsContainer() {
               setSelected(q);
             }, [])}
           >
-            <a>
+            <a href={"#!"}>
               <span>+</span>
             </a>
           </li>
@@ -107,9 +107,9 @@ const Tab: FC<{
       className={id === selected ? "is-active" : ""}
       onClick={useCallback(() => {
         onClick(item);
-      }, [item])}
+      }, [item, onClick])}
     >
-      <a>
+      <a href={"#!"}>
         <span>{id.substring(0, 5)}..</span>
         <button
           className="delete is-small margin-left"
