@@ -1,6 +1,7 @@
 {
   "name": "neo4j-browser-3d",
   "version": "0.1.0",
+  "homepage": "neo4j-browser-3d",
   "private": true,
   "dependencies": {
     "@neo4j-cypher/react-codemirror": "^1.0.3",
