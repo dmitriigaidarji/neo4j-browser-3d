@@ -9,8 +9,23 @@ import {
 } from "three/addons/renderers/CSS2DRenderer.js";
 // @ts-ignore
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-
 import SpriteText from "three-spritetext";
+
+interface IIcon {
+  label: string;
+  url: string;
+}
+const iconList: IIcon[] = [
+  {
+    label: "Person",
+    url: "https://clipart-library.com/images/pTq8LAnac.png",
+  },
+  {
+    label: "Movie",
+    url: "https://cdn-icons-png.flaticon.com/512/2503/2503508.png",
+  },
+];
+
 function createGraph() {
   const graph = ForceGraph3D({
     extraRenderers: [new CSS2DRenderer() as unknown as any],
@@ -32,11 +47,34 @@ function createGraph() {
     .linkDirectionalParticles(2)
     .nodeThreeObject((node: any) => {
       const nodeEl = document.createElement("div");
+      nodeEl.style.textAlign = "center";
+      let icon: IIcon | null = null;
+      for (const label of node.labels) {
+        icon = iconList.find((t) => t.label === label) ?? null;
+        if (icon) {
+          break;
+        }
+      }
+      if (icon) {
+        const imgContainer = document.createElement("div");
+
+        const img = document.createElement("img");
+        img.src = icon.url;
+        img.style.width = "30px";
+        imgContainer.append(img);
+        nodeEl.append(imgContainer);
+      }
+
+      const textContainer = document.createElement("div");
+
       const properties = (node as any).properties;
-      nodeEl.textContent =
+      textContainer.textContent =
         properties.name ?? properties.title ?? (node as any).elementId;
-      nodeEl.style.color = (node as unknown as any).color ?? "";
-      nodeEl.className = "node-label";
+      textContainer.style.color = (node as unknown as any).color ?? "";
+      textContainer.style.textShadow =
+        "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
+
+      nodeEl.append(textContainer);
       return new CSS2DObject(nodeEl);
     })
     .nodeThreeObjectExtend(true)
@@ -93,7 +131,6 @@ function GraphContainer({ graph }: { graph: IGraph }) {
             graphDomRef.current.getBoundingClientRect().height - 200,
           ),
         );
-      console.log("bloom");
       const bloomPass = new UnrealBloomPass();
       bloomPass.strength = 1.5;
       bloomPass.radius = 1;
