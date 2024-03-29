@@ -2,7 +2,9 @@
   /*text-align: center;*/
   padding-bottom: 20px;
 }
-
+.margin-left {
+  margin-left: 10px;
+}
 .App-logo {
   height: 40vmin;
   pointer-events: none;
