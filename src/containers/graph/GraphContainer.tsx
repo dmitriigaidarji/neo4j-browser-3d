@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { IGraph, ILink, INode } from "./helpers";
 import ForceGraph3D from "3d-force-graph";
 import { cloneDeep } from "lodash-es";
@@ -12,6 +18,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import SpriteText from "three-spritetext";
 // @ts-ignore
 import { Vector3 } from "three";
+import "./graph.scss";
 interface IIcon {
   label: string;
   url: string;
@@ -148,16 +155,14 @@ function createGraph() {
 function GraphContainer({ graph }: { graph: IGraph }) {
   const graphDomRef = useRef<HTMLDivElement>(null);
   const graphInstance = useMemo(() => createGraph(), []);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     if (graphDomRef.current) {
       graphInstance(graphDomRef.current)
         .width(graphDomRef.current.getBoundingClientRect().width)
         .height(
-          Math.max(
-            600,
-            graphDomRef.current.getBoundingClientRect().height - 200,
-          ),
+          Math.max(600, graphDomRef.current.getBoundingClientRect().height),
         );
       const bloomPass = new UnrealBloomPass();
       bloomPass.strength = 1.5;
@@ -173,13 +178,44 @@ function GraphContainer({ graph }: { graph: IGraph }) {
   }, [graphDomRef, graphInstance]);
 
   useEffect(() => {
+    function updateSize() {
+      if (graphDomRef.current) {
+        graphInstance
+          .width(graphDomRef.current.getBoundingClientRect().width)
+          .height(
+            Math.max(600, graphDomRef.current.getBoundingClientRect().height),
+          );
+      }
+    }
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return function cleanup() {
+      window.removeEventListener("resize", updateSize);
+    };
+  }, [graphDomRef, graphInstance, expanded]);
+
+  useEffect(() => {
     const cloned = cloneDeep(graph);
     graphInstance.graphData(cloned);
   }, [graph, graphInstance]);
 
-  console.log(graph);
-
-  return <div ref={graphDomRef} />;
+  return (
+    <div
+      className={`graph-container ${!expanded ? "" : "is-position-absolute"}`}
+    >
+      <div
+        className="expand-button"
+        onClick={useCallback(() => {
+          setExpanded((t) => !t);
+        }, [])}
+      >
+        <div className="control">
+          <i className={`fa-solid fa-${expanded ? "compress" : "expand"}`}></i>
+        </div>
+      </div>
+      <div ref={graphDomRef} />
+    </div>
+  );
 }
 
 export default GraphContainer;

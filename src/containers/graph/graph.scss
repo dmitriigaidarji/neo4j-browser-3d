@@ -1,0 +1,24 @@
+.graph-container {
+  &.is-position-absolute {
+    position: absolute;
+    z-index: 100;
+    width: 100vw;
+    height: 100vh;
+
+    top: 0;
+    left: 0;
+  }
+
+  .expand-button {
+    position: relative;
+
+    > div {
+      cursor: pointer;
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      color: cornflowerblue;
+      z-index: 49;
+    }
+  }
+}
