@@ -55,7 +55,7 @@ function QueryTabsContainer() {
       setSelected(queries[0]);
     }
   }, [selected, queries]);
-  console.log(selected);
+
   return (
     <div className={"box block"}>
       <div className="tabs is-boxed">

@@ -10,7 +10,8 @@ import {
 // @ts-ignore
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import SpriteText from "three-spritetext";
-
+// @ts-ignore
+import { Vector3 } from "three";
 interface IIcon {
   label: string;
   url: string;
@@ -41,7 +42,7 @@ function createGraph() {
     .linkWidth(0.5)
     .nodeResolution(16)
     .linkDirectionalArrowLength(3.5)
-    .linkDirectionalArrowRelPos(1)
+    .linkDirectionalArrowRelPos(1.05)
     .linkCurvature("curvature")
     .linkCurveRotation("rotation")
     .linkDirectionalParticles(2)
@@ -106,13 +107,40 @@ function createGraph() {
       sprite.textHeight = 1.5;
       return sprite;
     })
-    .linkPositionUpdate((sprite, { start, end }) => {
+    .linkPositionUpdate((sprite, { start, end }, link) => {
       const middlePos: { [key: string]: number } = {};
-      (["x", "y", "z"] as const).forEach((c) => {
-        middlePos[c] = start[c] + (end[c] - start[c]) / 2;
+      const plink: ILink = link as ILink;
+      (["x", "y", "z"] as const).forEach((xyz) => {
+        middlePos[xyz] = start[xyz] + (end[xyz] - start[xyz]) / 2;
       });
-      // Position sprite
-      Object.assign(sprite.position, middlePos);
+      if (plink.curvature > 0 || plink.rotation > 0) {
+        let vDiff = new Vector3(0, 0, 0).subVectors(end, start).normalize();
+
+        let V = new Vector3(
+          vDiff.y + vDiff.x * vDiff.z,
+          vDiff.y * vDiff.z - vDiff.x,
+          -(vDiff.x * vDiff.x) - vDiff.y * vDiff.y,
+        );
+
+        const t = V.applyAxisAngle(
+          vDiff,
+          plink.rotation / plink.curvature - 0.5,
+        ).applyAxisAngle(
+          new Vector3().multiplyVectors(V, vDiff).normalize(),
+          (15 * Math.PI) / 180,
+        );
+        t.multiplyScalar(plink.curvature * 10);
+
+        const translated = {
+          x: middlePos.x + t.x,
+          y: middlePos.y + t.y,
+          z: middlePos.z + t.z,
+        };
+        Object.assign(sprite.position, translated);
+      } else {
+        // Position sprite
+        Object.assign(sprite.position, middlePos);
+      }
     });
 
   return graph;
