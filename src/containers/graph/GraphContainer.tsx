@@ -159,11 +159,7 @@ function GraphContainer({ graph }: { graph: IGraph }) {
 
   useEffect(() => {
     if (graphDomRef.current) {
-      graphInstance(graphDomRef.current)
-        .width(graphDomRef.current.getBoundingClientRect().width)
-        .height(
-          Math.max(600, graphDomRef.current.getBoundingClientRect().height),
-        );
+      graphInstance(graphDomRef.current);
       const bloomPass = new UnrealBloomPass();
       bloomPass.strength = 1.5;
       bloomPass.radius = 1;
