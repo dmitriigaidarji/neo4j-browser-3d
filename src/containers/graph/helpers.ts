@@ -77,7 +77,6 @@ function curveLinksThatAreOfSameStartAndEnd(graph: IGraph) {
       link.curvature = len > 1 ? len / 10 : 0;
     });
   });
-  console.log(graph.links, mapped);
 }
 
 export function processQueryResultsForGraph(data: IFrameQueryResult[]) {

@@ -4,6 +4,7 @@ import { SessionContext } from "../../providers/SessionProvider";
 import FrameQueryContainer from "./FrameQueryContainer";
 import "./frame.scss";
 import { RecordShape } from "neo4j-driver";
+import "@neo4j-cypher/codemirror/css/cypher-codemirror.css";
 
 export type IFrameQueryResult = RecordShape<PropertyKey, any>;
 function FrameContainer({
@@ -25,7 +26,7 @@ function FrameContainer({
   const [loading, setLoading] = useState(false);
   const [value, setValue] = React.useState("");
   const [data, setData] = React.useState<IFrameQueryResult[] | null>(null);
-
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     setValue(defaultQuery ?? "");
     setData(defaultData ?? null);
@@ -39,9 +40,19 @@ function FrameContainer({
 
   const handleSubmit = useCallback(async () => {
     setLoading(true);
-    setData(
-      await session.run(value).then((r) => r.records.map((t) => t.toObject())),
-    );
+    setError(null);
+    await session
+      .run(value)
+      .then((r) => r.records.map((t) => t.toObject()))
+      .then((r) => {
+        setData(r);
+        return r;
+      })
+      .catch((e) => {
+        console.error(e);
+        setError(e?.message ?? "Error");
+      });
+
     setLoading(false);
   }, [value, session]);
 
@@ -63,7 +74,11 @@ function FrameContainer({
           </progress>
         </div>
       )}
-      {data && <FrameQueryContainer data={data} />}
+      {error ? (
+        <div className={"field block"}>{JSON.stringify(error)}</div>
+      ) : (
+        data && <FrameQueryContainer data={data} />
+      )}
     </div>
   );
 }
