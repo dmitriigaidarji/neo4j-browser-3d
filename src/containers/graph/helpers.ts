@@ -82,21 +82,21 @@ function curveLinksThatAreOfSameStartAndEnd(graph: IGraph) {
 
 export function processQueryResultsForGraph(data: IFrameQueryResult[]) {
   const graph = getUniqueNodesAndLinks(data);
-
-  [0, 1, 2, 3, 4, 5, 6, 7, 8].forEach((i) => {
-    graph.links.push({
-      curvature: 0.8,
-      elementId: "5:3d2f91a4-814c-4347-a79f-915751885b1" + i,
-      end: 119,
-      endNodeElementId: "4:3d2f91a4-814c-4347-a79f-9215751885b2:119",
-      identity: 169,
-      properties: {},
-      rotation: 0,
-      start: 5,
-      startNodeElementId: "4:3d2f91a4-814c-4347-a79f-9215751885b2:5",
-      type: "WROTE",
-    });
-  });
+  //
+  // [0, 1, 2, 3, 4, 5, 6, 7, 8].forEach((i) => {
+  //   graph.links.push({
+  //     curvature: 0.8,
+  //     elementId: "5:3d2f91a4-814c-4347-a79f-915751885b1" + i,
+  //     end: 119,
+  //     endNodeElementId: "4:3d2f91a4-814c-4347-a79f-9215751885b2:119",
+  //     identity: 169,
+  //     properties: {},
+  //     rotation: 0,
+  //     start: 5,
+  //     startNodeElementId: "4:3d2f91a4-814c-4347-a79f-9215751885b2:5",
+  //     type: "WROTE",
+  //   });
+  // });
   curveLinksThatAreOfSameStartAndEnd(graph);
   return graph;
 }
