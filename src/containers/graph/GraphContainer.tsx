@@ -113,7 +113,7 @@ function createGraph() {
       (["x", "y", "z"] as const).forEach((xyz) => {
         middlePos[xyz] = start[xyz] + (end[xyz] - start[xyz]) / 2;
       });
-      if (plink.curvature > 0 || plink.rotation > 0) {
+      if (plink.curvature > 0) {
         let vDiff = new Vector3(0, 0, 0).subVectors(end, start).normalize();
 
         let V = new Vector3(
