@@ -7,6 +7,7 @@ import {
 } from "react";
 import { Driver, Session } from "neo4j-driver";
 import { EditorSupportSchema } from "@neo4j-cypher/editor-support";
+import { neo4jSchema } from "./hepers/schema";
 
 interface ISessionActions {}
 interface ISessionContext {
@@ -48,9 +49,9 @@ function SessionProvider({
         tx.run("call db.labels()"),
         tx.run("call db.relationshipTypes()"),
         tx.run("call db.propertyKeys()"),
-        tx.run("SHOW FUNCTIONS"),
       ]).then((response) => {
         setSchema({
+          ...neo4jSchema,
           labels: response[0].records.map((t) => t.toObject().label),
           relationshipTypes: response[1].records.map(
             (t) => t.toObject().relationshipType,
@@ -58,12 +59,6 @@ function SessionProvider({
           propertyKeys: response[2].records.map(
             (t) => t.toObject().propertyKey,
           ),
-          functions: response[3].records
-            .map((t) => t.toObject())
-            .map((t) => ({
-              name: t.name,
-              signature: t.name,
-            })),
         });
         tx.close();
       }),

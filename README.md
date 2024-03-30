@@ -1,6 +1,11 @@
-# Getting Started with Create React App
+# Neo4j browser 3D
+
+![Alt text](./graph-3d-preview.jpg?raw=true "Preview")
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+It uses [3d-force-graph](https://github.com/vasturiano/3d-force-graph) to render neo4j data
+
 
 ## Available Scripts
 
