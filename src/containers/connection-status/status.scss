@@ -1,6 +1,7 @@
 .connectionStatus {
   position: fixed;
   bottom: 0;
+  z-index: 50;
   width: 100%;
   background: #ececec;
   border-top: 1px solid #444;
