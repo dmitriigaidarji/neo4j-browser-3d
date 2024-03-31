@@ -25,13 +25,36 @@
   .sidepanel {
     position: absolute;
     z-index: 60;
-    left: 0;
-    margin-top: 10%;
+    margin-left: 1%;
+    margin-top: 2%;
     //top: 0;
     width: 400px;
     //height: 100vh;
     //background: rgb(93 138 155 / 40%);
-    color: white;
+    color: inherit;
     //padding: 20px;
+
+    .panel {
+      background-color: white;
+    }
+    .table-wrapper {
+      max-height: 400px;
+      overflow-y: auto;
+      table {
+        background: transparent;
+
+        td:nth-child(1) {
+          text-transform: capitalize;
+          font-weight: bold;
+        }
+
+        td:nth-child(2) {
+          div {
+            //white-space: pre-wrap;
+            //max-width: 200px;
+          }
+        }
+      }
+    }
   }
 }

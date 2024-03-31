@@ -78,8 +78,7 @@ function GraphContainer({ graph }: { graph: IGraph }) {
           <i className={`fa-solid fa-${expanded ? "compress" : "expand"}`}></i>
         </div>
       </div>
-      <GraphSidePanel item={selectedItem} />
-
+      {selectedItem && <GraphSidePanel item={selectedItem} />}
       <div ref={graphDomRef} />
     </div>
   );
