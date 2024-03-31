@@ -9,52 +9,54 @@ import "@neo4j-cypher/codemirror/css/cypher-codemirror.css";
 export type IFrameQueryResult = RecordShape<PropertyKey, any>;
 function FrameContainer({
   defaultQuery,
-  defaultData,
-  onUpdate,
+  cacheQuery,
 }: {
   defaultQuery?: string;
-  defaultData?: IFrameQueryResult[] | null;
-  onUpdate: ({
-    query,
-    result,
-  }: {
-    query: string;
-    result: IFrameQueryResult[];
-  }) => any;
+  cacheQuery: (query: string) => void;
 }) {
-  const { schema, session } = useContext(SessionContext);
+  const { schema, getSession } = useContext(SessionContext);
   const [loading, setLoading] = useState(false);
   const [value, setValue] = React.useState("");
   const [data, setData] = React.useState<IFrameQueryResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    setValue(defaultQuery ?? "");
-    setData(defaultData ?? null);
-  }, [defaultData, defaultQuery]);
 
-  useEffect(() => {
-    if (value && data) {
-      onUpdate({ query: value, result: data });
-    }
-  }, [value, data, onUpdate]);
+  const handleFetchData = useCallback(
+    async (query: string) => {
+      setLoading(true);
+      setError(null);
+      const session = getSession();
+      await session
+        .run(query)
+        .then((r) => r.records.map((t) => t.toObject()))
+        .then((r) => {
+          setData(r);
+          cacheQuery(query);
+          return r;
+        })
+        .catch((e) => {
+          console.error(e);
+          setError(e?.message ?? "Error");
+        })
+        .finally(() => {
+          session.close();
+        });
+
+      setLoading(false);
+    },
+    [getSession, cacheQuery],
+  );
 
   const handleSubmit = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    await session
-      .run(value)
-      .then((r) => r.records.map((t) => t.toObject()))
-      .then((r) => {
-        setData(r);
-        return r;
-      })
-      .catch((e) => {
-        console.error(e);
-        setError(e?.message ?? "Error");
-      });
+    handleFetchData(value);
+  }, [handleFetchData, value]);
 
-    setLoading(false);
-  }, [value, session]);
+  useEffect(() => {
+    const v = defaultQuery ?? "";
+    setValue(v);
+    if (v.length > 0) {
+      handleFetchData(v);
+    }
+  }, [handleFetchData, defaultQuery]);
 
   return (
     <div>
