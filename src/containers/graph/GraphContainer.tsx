@@ -5,17 +5,26 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { IGraph } from "./helpers";
+import { IGraph, ILink, INode } from "./helpers";
 import { cloneDeep } from "lodash-es";
 // @ts-ignore
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 
 import "./graph.scss";
 import { createGraph } from "./graph";
+import GraphSidePanel from "./GraphSidePanel";
 
 function GraphContainer({ graph }: { graph: IGraph }) {
   const graphDomRef = useRef<HTMLDivElement>(null);
-  const graphInstance = useMemo(() => createGraph(), []);
+  const [selectedItem, setSelectedItem] = useState<INode | ILink | null>(null);
+
+  const graphInstance = useMemo(
+    () =>
+      createGraph({
+        onSelect: setSelectedItem,
+      }),
+    [setSelectedItem],
+  );
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
@@ -69,6 +78,8 @@ function GraphContainer({ graph }: { graph: IGraph }) {
           <i className={`fa-solid fa-${expanded ? "compress" : "expand"}`}></i>
         </div>
       </div>
+      <GraphSidePanel item={selectedItem} />
+
       <div ref={graphDomRef} />
     </div>
   );

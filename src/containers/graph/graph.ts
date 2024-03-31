@@ -23,7 +23,11 @@ const iconList: IIcon[] = [
   },
 ];
 
-export function createGraph() {
+export function createGraph({
+  onSelect,
+}: {
+  onSelect: (item: INode | ILink) => any;
+}) {
   const graph = ForceGraph3D({
     extraRenderers: [new CSS2DRenderer() as unknown as any],
   })
@@ -94,6 +98,10 @@ export function createGraph() {
         node, // lookAt ({ x, y, z })
         2000, // ms transition duration
       );
+      onSelect(node);
+    })
+    .onLinkClick((link: any) => {
+      onSelect(link);
     })
     .linkThreeObjectExtend(true)
     .linkThreeObject((link: any) => {
