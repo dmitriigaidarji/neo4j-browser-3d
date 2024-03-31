@@ -3,6 +3,7 @@ import { uniqBy } from "lodash-es";
 export interface INode {
   labels: string[];
   elementId: string;
+  identity: number;
   properties: any;
 }
 
