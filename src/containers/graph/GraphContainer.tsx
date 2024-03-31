@@ -14,11 +14,14 @@ import "./graph.scss";
 import { createGraph } from "./graph";
 import GraphSidePanel from "./GraphSidePanel";
 import setGraphIcons from "./graphIcons";
+import setGraphLinkTexts from "./graphLinkTexts";
 
 function GraphContainer({ graph }: { graph: IGraph }) {
   const graphDomRef = useRef<HTMLDivElement>(null);
   const [selectedItem, setSelectedItem] = useState<INode | ILink | null>(null);
   const [showIcons, setShowIcons] = useState(true);
+  const [showNodeTexts, setShowNodeTexts] = useState(true);
+  const [showLinkTexts, setShowLinkTexts] = useState(true);
 
   const graphInstance = useMemo(
     () =>
@@ -29,8 +32,19 @@ function GraphContainer({ graph }: { graph: IGraph }) {
   );
 
   useEffect(() => {
-    setGraphIcons(graphInstance, showIcons);
-  }, [graphInstance, showIcons]);
+    setGraphIcons({
+      graph: graphInstance,
+      showNodeIcons: showIcons,
+      showNodeTexts,
+    });
+  }, [graphInstance, showIcons, showNodeTexts]);
+
+  useEffect(() => {
+    setGraphLinkTexts({
+      graph: graphInstance,
+      showLinkTexts,
+    });
+  }, [graphInstance, showLinkTexts]);
 
   const [expanded, setExpanded] = useState(false);
 
@@ -75,16 +89,38 @@ function GraphContainer({ graph }: { graph: IGraph }) {
       className={`graph-container ${!expanded ? "" : "is-position-absolute"}`}
     >
       <div>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={showIcons}
-            onChange={useCallback(() => {
-              setShowIcons((t) => !t);
-            }, [])}
-          />{" "}
-          Enable icons
-        </label>
+        <div className={"controls"}>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={showIcons}
+              onChange={useCallback(() => {
+                setShowIcons((t) => !t);
+              }, [])}
+            />
+            Enable icons
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={showNodeTexts}
+              onChange={useCallback(() => {
+                setShowNodeTexts((t) => !t);
+              }, [])}
+            />
+            Show node title
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={showLinkTexts}
+              onChange={useCallback(() => {
+                setShowLinkTexts((t) => !t);
+              }, [])}
+            />
+            Show link titles
+          </label>
+        </div>
       </div>
       <div
         className="expand-button"
