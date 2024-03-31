@@ -1,4 +1,4 @@
-import FrameContainer, { IFrameQueryResult } from "../frame/FrameContainer";
+import FrameContainer from "../frame/FrameContainer";
 import { FC, useCallback, useState, MouseEvent, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 
