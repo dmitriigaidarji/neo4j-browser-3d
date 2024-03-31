@@ -16,12 +16,20 @@ const iconList: IIcon[] = [
     url: "https://cdn-icons-png.flaticon.com/512/2503/2503508.png",
   },
 ];
-function setGraphIcons(graph: ForceGraph3DInstance, showIcons: boolean) {
+function setGraphIcons({
+  graph,
+  showNodeIcons,
+  showNodeTexts,
+}: {
+  graph: ForceGraph3DInstance;
+  showNodeIcons: boolean;
+  showNodeTexts: boolean;
+}) {
   graph.nodeThreeObject((node: any) => {
     const nodeEl = document.createElement("div");
     nodeEl.style.textAlign = "center";
 
-    if (showIcons) {
+    if (showNodeIcons) {
       let icon: IIcon | null = null;
       for (const label of node.labels) {
         icon = iconList.find((t) => t.label === label) ?? null;
@@ -40,16 +48,19 @@ function setGraphIcons(graph: ForceGraph3DInstance, showIcons: boolean) {
       }
     }
 
-    const textContainer = document.createElement("div");
+    if (showNodeTexts) {
+      const textContainer = document.createElement("div");
 
-    const properties = (node as any).properties;
-    textContainer.textContent =
-      properties.name ?? properties.title ?? (node as any).elementId;
-    textContainer.style.color = (node as unknown as any).color ?? "";
-    textContainer.style.textShadow =
-      "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
+      const properties = (node as any).properties;
+      textContainer.textContent =
+        properties.name ?? properties.title ?? (node as any).elementId;
+      textContainer.style.color = (node as unknown as any).color ?? "";
+      textContainer.style.textShadow =
+        "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
 
-    nodeEl.append(textContainer);
+      nodeEl.append(textContainer);
+    }
+
     return new CSS2DObject(nodeEl);
   });
 }
