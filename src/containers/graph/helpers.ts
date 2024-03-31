@@ -1,5 +1,6 @@
 import { IFrameQueryResult } from "../frame/FrameContainer";
-import { uniqBy } from "lodash-es";
+import { cloneDeep, uniqBy } from "lodash-es";
+import { Session } from "neo4j-driver";
 export interface INode {
   labels: string[];
   elementId: string;
@@ -70,6 +71,17 @@ function curveLinksThatAreOfSameStartAndEnd(graph: IGraph) {
       mapped[key] = [link];
     }
   });
+  // Object.values(mapped)
+  //   .filter((t) => t.length > 1)
+  //   .map((links) => {
+  //     console.log(links);
+  //     console.log(
+  //       links.map((t) => [
+  //         graph.nodes.find((n) => n.elementId === t.startNodeElementId),
+  //         graph.nodes.find((n) => n.elementId === t.endNodeElementId),
+  //       ]),
+  //     );
+  //   });
   Object.values(mapped).forEach((links) => {
     const len = links.length;
     const step = 2 / len;
@@ -78,6 +90,52 @@ function curveLinksThatAreOfSameStartAndEnd(graph: IGraph) {
       link.curvature = len > 1 ? len / 10 : 0;
     });
   });
+}
+
+export function fetchRelationshipsBetweenNodesOfAGraph({
+  graph,
+  session,
+}: {
+  graph: IGraph;
+  session: Session;
+}) {
+  const nodeIds = graph.nodes.map((t) => t.elementId);
+  const linkIds = graph.links.map((t) => t.elementId);
+  if (nodeIds.length > 0) {
+    const cloned = cloneDeep(graph);
+    return session
+      .run(
+        `
+    MATCH (n)-[r]-(m)
+    where elementId(n) in $nodeIds
+    and elementId(m) in $nodeIds
+    and elementId(m) <> elementId(n)
+    and not elementId(r) in $linkIds
+    return r
+  `,
+        { nodeIds, linkIds },
+      )
+      .then((r) => r.records.map((t) => t.get("r") as ILink))
+      .then((links) => {
+        let wasAdded = false;
+        links.forEach((link) => {
+          if (
+            cloned.links.find((t) => t.elementId === link.elementId) ===
+            undefined
+          ) {
+            cloned.links.push(link);
+            wasAdded = true;
+          }
+        });
+        if (wasAdded) {
+          curveLinksThatAreOfSameStartAndEnd(cloned);
+          return cloned;
+        } else {
+          return graph;
+        }
+      });
+  }
+  return Promise.resolve(graph);
 }
 
 export function processQueryResultsForGraph(data: IFrameQueryResult[]) {

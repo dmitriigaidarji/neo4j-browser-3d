@@ -6,13 +6,11 @@ function createSavedQuery(): ISavedQuery {
   return {
     id: uuidv4(),
     query: "",
-    result: null,
   };
 }
 interface ISavedQuery {
   id: string;
   query: string;
-  result: IFrameQueryResult[] | null;
 }
 const key = "SAVED_QUERIES";
 function getDataFromCache(): ISavedQuery[] {
@@ -32,9 +30,8 @@ function QueryTabsContainer() {
   const [selected, setSelected] = useState(queries[0]);
 
   const handleUpdate = useCallback(
-    ({ query, result }: { query: string; result: IFrameQueryResult[] }) => {
+    (query: string) => {
       selected.query = query;
-      selected.result = result;
       localStorage.setItem(key, JSON.stringify(queries));
     },
     [queries, selected],
@@ -86,11 +83,7 @@ function QueryTabsContainer() {
           </li>
         </ul>
       </div>
-      <FrameContainer
-        defaultQuery={selected.query}
-        defaultData={selected.result}
-        onUpdate={handleUpdate}
-      />
+      <FrameContainer defaultQuery={selected.query} cacheQuery={handleUpdate} />
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { IFrameQueryResult } from "./FrameContainer";
-import { memo, useCallback, useMemo, useState, FC } from "react";
+import { memo, useCallback, useMemo, useState, FC, useEffect } from "react";
 import JSONDisplay from "./JSONDisplay";
-import GraphContainer from "../graph/GraphContainer";
 import { processQueryResultsForGraph } from "../graph/helpers";
+import GraphProcessedContainer from "../graph/GraphProcessedContainer";
 
 interface IProps {
   data: IFrameQueryResult[];
@@ -39,13 +39,17 @@ function FrameQueryContainer({ data }: IProps) {
   const showGraphTab = graph.nodes.length > 0;
 
   const [mode, setMode] = useState(showGraphTab ? TabMode.graph : TabMode.json);
-
+  useEffect(() => {
+    if (mode === TabMode.graph && !showGraphTab) {
+      setMode(TabMode.json);
+    }
+  }, [showGraphTab, mode]);
   const node = useMemo(() => {
     switch (mode) {
       case TabMode.json:
         return <JSONDisplay data={data} />;
       case TabMode.graph:
-        return <GraphContainer graph={graph} />;
+        return <GraphProcessedContainer graph={graph} />;
     }
   }, [data, mode, graph]);
   const handleTabClick = useCallback((newMode: TabMode) => {
