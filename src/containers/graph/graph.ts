@@ -10,6 +10,9 @@ export function createGraph({
 }: {
   onSelect: (item: INode | ILink) => any;
 }) {
+  const highlightNodes = new Set();
+  const highlightLinks = new Set();
+  let hoverNode: any = null;
   const graph = ForceGraph3D({
     extraRenderers: [new CSS2DRenderer() as unknown as any],
   })
@@ -17,11 +20,15 @@ export function createGraph({
     .nodeId("elementId")
     .linkSource("startNodeElementId")
     .linkTarget("endNodeElementId")
-    .nodeAutoColorBy((t) => {
-      return (t as unknown as INode).labels.join(",");
-    })
+    .nodeColor((node: any) =>
+      highlightNodes.has(node)
+        ? node === hoverNode
+          ? "rgb(255,0,0,1)"
+          : "rgba(255,160,0,0.8)"
+        : node.color,
+    )
     .linkAutoColorBy((t) => (t as unknown as ILink).type)
-    .linkWidth(0.5)
+    .linkWidth((link) => (highlightLinks.has(link) ? 4 : 0.5))
     .nodeResolution(16)
     // .nodeVal((t) => {
     //   // console.log(t);
@@ -33,7 +40,7 @@ export function createGraph({
     .linkDirectionalArrowRelPos(1)
     .linkCurvature("curvature")
     .linkCurveRotation("rotation")
-    .linkDirectionalParticles(2)
+    .linkDirectionalParticles((link) => (highlightLinks.has(link) ? 5 : 2))
     .linkDirectionalParticleWidth(1)
     .linkDirectionalParticleColor((t) => "orange")
     .nodeThreeObjectExtend(true)
@@ -61,9 +68,46 @@ export function createGraph({
     .onLinkClick((link: any) => {
       onSelect(link);
     })
-    .linkThreeObjectExtend(true);
+    .linkThreeObjectExtend(true)
+    .onNodeHover((inputNode) => {
+      const node = inputNode as unknown as INode | null;
+      // no state change
+      if ((!node && !highlightNodes.size) || (node && hoverNode === node))
+        return;
+
+      highlightNodes.clear();
+      highlightLinks.clear();
+      if (node) {
+        highlightNodes.add(node);
+        node.neighbors.forEach((neighbor) => highlightNodes.add(neighbor));
+        node.links.forEach((link) => highlightLinks.add(link));
+      }
+
+      hoverNode = node || null;
+
+      updateHighlight();
+    })
+    .onLinkHover((inputLink) => {
+      const link = inputLink as unknown as ILink | null;
+      highlightNodes.clear();
+      highlightLinks.clear();
+
+      if (link) {
+        highlightLinks.add(link);
+        highlightNodes.add(link.source);
+        highlightNodes.add(link.target);
+      }
+
+      updateHighlight();
+    });
 
   graph.d3Force("charge")?.strength(-200);
-
+  function updateHighlight() {
+    // trigger update of highlighted objects in scene
+    graph
+      .nodeColor(graph.nodeColor())
+      .linkWidth(graph.linkWidth())
+      .linkDirectionalParticles(graph.linkDirectionalParticles());
+  }
   return graph;
 }

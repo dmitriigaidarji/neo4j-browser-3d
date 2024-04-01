@@ -1,7 +1,9 @@
 import { IFrameQueryResult } from "../frame/FrameContainer";
-import { cloneDeep, max, uniqBy } from "lodash-es";
+import { cloneDeep, max, uniq, uniqBy } from "lodash-es";
 import { Session } from "neo4j-driver";
 import config from "../../config/graph-config.json";
+import { interpolateRainbow } from "d3-scale-chromatic";
+
 export interface INode {
   labels: string[];
   elementId: string;
@@ -9,6 +11,8 @@ export interface INode {
   properties: any;
   color?: string;
   val?: number;
+  neighbors: INode[];
+  links: ILink[];
 }
 
 export interface ILink {
@@ -22,6 +26,8 @@ export interface ILink {
   end: number;
   start: number;
   identity: number;
+  source?: INode;
+  target?: INode;
 }
 export interface IGraph {
   nodes: INode[];
@@ -95,8 +101,24 @@ export function applyLinkValuesToGraph(graph: IGraph, enable: boolean): IGraph {
       if (config.relationships[type]) {
         const rule = config.relationships[type];
         // apply value to nodes
-        const value = link.properties[rule["value-field"]];
-        if (value && typeof value === "number") {
+        const rawvalue = link.properties[rule["value-field"]];
+        if (rawvalue && typeof rawvalue === "number") {
+          let value = rawvalue;
+          if (link.properties.buom) {
+            const buom = link.properties.buom as "GM" | "MG" | "ML";
+            switch (buom) {
+              case "GM":
+              case "ML":
+                value /= 1000;
+                break;
+              case "MG":
+                value /= 1000 * 1000;
+                break;
+              default:
+                value = rawvalue;
+                break;
+            }
+          }
           const inNode = link.endNodeElementId;
           if (nodeValues[inNode] === undefined) {
             nodeValues[inNode] = 1;
@@ -154,9 +176,35 @@ function applyRulesToGraph(graph: IGraph): IGraph {
   });
   return graph;
 }
+function applyColors(graph: IGraph): IGraph {
+  const colorMap: { [key: string]: string } = {};
+  const labels = uniq(graph.nodes.map((t) => t.labels.join("|")));
+  labels.forEach((t) => (colorMap[t] = interpolateRainbow(Math.random())));
+  graph.nodes.forEach((t) => (t.color = colorMap[t.labels.join("|")]));
+  return graph;
+}
+function crossLink(graph: IGraph): IGraph {
+  // cross-link node objects
+  graph.links.forEach((link) => {
+    const a = graph.nodes.find((t) => t.elementId === link.startNodeElementId)!;
+    const b = graph.nodes.find((t) => t.elementId === link.endNodeElementId)!;
+    !a.neighbors && (a.neighbors = []);
+    !b.neighbors && (b.neighbors = []);
+    a.neighbors.push(b);
+    b.neighbors.push(a);
+
+    !a.links && (a.links = []);
+    !b.links && (b.links = []);
+    a.links.push(link);
+    b.links.push(link);
+  });
+  return graph;
+}
 function postProcessGraph(graph: IGraph): IGraph {
   return applyLinkValuesToGraph(
-    applyRulesToGraph(curveLinksThatAreOfSameStartAndEnd(graph)),
+    applyRulesToGraph(
+      applyColors(curveLinksThatAreOfSameStartAndEnd(crossLink(graph))),
+    ),
     true,
   );
 }

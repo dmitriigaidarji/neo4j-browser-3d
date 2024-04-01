@@ -63,14 +63,6 @@ function GraphContainer({
   );
 
   useEffect(() => {
-    setGraphIcons({
-      graph: graphInstance,
-      showNodeIcons: showIcons,
-      showNodeTexts,
-    });
-  }, [graphInstance, showIcons, showNodeTexts]);
-
-  useEffect(() => {
     setGraphLinkTexts({
       graph: graphInstance,
       showLinkTexts,
@@ -124,6 +116,14 @@ function GraphContainer({
     console.log(d);
     graphInstance.graphData(d);
   }, [graph, graphInstance]);
+
+  useEffect(() => {
+    setGraphIcons({
+      graph: graphInstance,
+      showNodeIcons: showIcons,
+      showNodeTexts,
+    });
+  }, [graphInstance, showIcons, showNodeTexts]);
 
   return (
     <div
