@@ -50,13 +50,29 @@ function setGraphIcons({
 
     if (showNodeTexts) {
       const textContainer = document.createElement("div");
+      const labelContainer = document.createElement("div");
+      const titleContainer = document.createElement("div");
 
       const properties = (node as any).properties;
-      textContainer.textContent =
-        properties.name ?? properties.title ?? (node as any).elementId;
+
+      labelContainer.textContent = node.labels.join("|");
+
+      titleContainer.textContent =
+        properties.name ??
+        properties.title ??
+        properties.batch_id ??
+        properties.material_id ??
+        properties.site_id ??
+        properties.vendor_id ??
+        properties.customer_id ??
+        "";
+
       textContainer.style.color = (node as unknown as any).color ?? "";
       textContainer.style.textShadow =
         "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
+
+      textContainer.append(labelContainer);
+      textContainer.append(titleContainer);
 
       nodeEl.append(textContainer);
     }

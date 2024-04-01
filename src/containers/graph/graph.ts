@@ -23,11 +23,19 @@ export function createGraph({
     .linkAutoColorBy((t) => (t as unknown as ILink).type)
     .linkWidth(0.5)
     .nodeResolution(16)
+    // .nodeVal((t) => {
+    //   // console.log(t);
+    //   // return 1;
+    //   return (t as any).properties?.total_qty_received ?? 1;
+    // })
+    // .nodeRelSize(0.2)
     .linkDirectionalArrowLength(3.5)
-    .linkDirectionalArrowRelPos(1.05)
+    .linkDirectionalArrowRelPos(1)
     .linkCurvature("curvature")
     .linkCurveRotation("rotation")
     .linkDirectionalParticles(2)
+    .linkDirectionalParticleWidth(1)
+    .linkDirectionalParticleColor((t) => "orange")
     .nodeThreeObjectExtend(true)
     .onNodeClick((node: any) => {
       // Aim at node from outside it
@@ -54,6 +62,8 @@ export function createGraph({
       onSelect(link);
     })
     .linkThreeObjectExtend(true);
+
+  graph.d3Force("charge")?.strength(-120);
 
   return graph;
 }

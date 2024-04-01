@@ -29,21 +29,23 @@ function findNodesRecursively({
   nodes,
   rels,
 }: {
-  item: INode | any;
+  item: INode | ILink | any;
   nodes: INode[];
   rels: ILink[];
 }): void {
-  if (item.hasOwnProperty("labels")) {
-    nodes.push(item);
-    return;
-  } else if (item.hasOwnProperty("type")) {
-    rels.push(item);
-    return;
-  } else if (typeof item === "object") {
-    Object.values(item).forEach((nestedItem) => {
-      findNodesRecursively({ item: nestedItem, nodes, rels });
-    });
-    return;
+  if (item) {
+    if (item.hasOwnProperty("labels")) {
+      nodes.push(item);
+      return;
+    } else if (item.hasOwnProperty("type")) {
+      rels.push(item);
+      return;
+    } else if (typeof item === "object") {
+      Object.values(item).forEach((nestedItem) => {
+        findNodesRecursively({ item: nestedItem, nodes, rels });
+      });
+      return;
+    }
   }
   return;
 }

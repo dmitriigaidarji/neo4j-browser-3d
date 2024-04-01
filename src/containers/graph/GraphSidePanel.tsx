@@ -1,5 +1,6 @@
 import { ILink, INode } from "./helpers";
 import React, { useCallback, useMemo, useState } from "react";
+import { Duration } from "neo4j-driver";
 
 interface IProps {
   item: INode | ILink;
@@ -7,7 +8,7 @@ interface IProps {
 
 interface IInfo extends Pick<INode, "labels" | "identity" | "elementId"> {
   title: string;
-  properties: Array<[string, string | number | string[]]>;
+  properties: Array<[string, string | number | string[] | { days: number }]>;
 }
 function isNode(item: INode | ILink): item is INode {
   return (item as INode).labels !== undefined;
@@ -69,11 +70,7 @@ function GraphSidePanel({ item }: IProps) {
                     <tr key={key}>
                       <td>{key}</td>
                       <td>
-                        <div>
-                          {typeof value === "object"
-                            ? JSON.stringify(value).split(",").join(", ")
-                            : value}
-                        </div>
+                        <div>{parseValue(value)}</div>
                       </td>
                     </tr>
                   ))}
@@ -92,5 +89,44 @@ function GraphSidePanel({ item }: IProps) {
     </div>
   );
 }
+const parseDate = (neo4jDateTime: any): Date => {
+  const {
+    year,
+    month,
+    day,
+    hour = 0,
+    minute = 0,
+    second = 0,
+    nanosecond = 0,
+  } = neo4jDateTime;
+  console.log(neo4jDateTime);
+  const date = new Date(
+    year,
+    month - 1, // neo4j dates start at 1, js dates start at 0
+    day,
+    hour,
+    minute,
+    second,
+    nanosecond / 1000000, // js dates use milliseconds
+  );
 
+  return date;
+};
+function parseValue(value: any) {
+  if (typeof value === "object") {
+    if (["year", "month", "day"].every((key) => value[key] != undefined)) {
+      return parseDate(value).toLocaleDateString();
+    }
+    if (["days", "months", "seconds"].every((key) => value[key] != undefined)) {
+      return new Duration(
+        value.months,
+        value.days,
+        value.seconds,
+        value.nanoseconds,
+      ).toString();
+    }
+    return JSON.stringify(value).split(",").join(", ");
+  }
+  return value;
+}
 export default GraphSidePanel;
