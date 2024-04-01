@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { IGraph, ILink, INode } from "./helpers";
+import { applyLinkValuesToGraph, IGraph, ILink, INode } from "./helpers";
 import { cloneDeep } from "lodash-es";
 // @ts-ignore
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
@@ -15,13 +15,37 @@ import { createGraph } from "./graph";
 import GraphSidePanel from "./GraphSidePanel";
 import setGraphIcons from "./graphIcons";
 import setGraphLinkTexts from "./graphLinkTexts";
+import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
 
-function GraphContainer({ graph }: { graph: IGraph }) {
+function GraphContainer({
+  graph,
+  rerenderGraph,
+}: {
+  graph: IGraph;
+  rerenderGraph: (props?: { [CachedKey.showLinkValues]?: boolean }) => void;
+}) {
   const graphDomRef = useRef<HTMLDivElement>(null);
   const [selectedItem, setSelectedItem] = useState<INode | ILink | null>(null);
-  const [showIcons, setShowIcons] = useState(true);
-  const [showNodeTexts, setShowNodeTexts] = useState(true);
-  const [showLinkTexts, setShowLinkTexts] = useState(true);
+  const [showIcons, setShowIcons] = useCachedValue(
+    CachedKey.showIcons,
+    false as boolean,
+  );
+  const [showNodeTexts, setShowNodeTexts] = useCachedValue(
+    CachedKey.showNodeTexts,
+    false as boolean,
+  );
+  const [showLinkTexts, setShowLinkTexts] = useCachedValue(
+    CachedKey.showLinkTexts,
+    false as boolean,
+  );
+  const [showLinkValues, setShowLinkValues] = useCachedValue(
+    CachedKey.showLinkValues,
+    true as boolean,
+  );
+
+  useEffect(() => {
+    rerenderGraph({ showLinkValues });
+  }, [showLinkValues, rerenderGraph]);
 
   const graphInstance = useMemo(
     () =>
@@ -96,7 +120,7 @@ function GraphContainer({ graph }: { graph: IGraph }) {
               checked={showIcons}
               onChange={useCallback(() => {
                 setShowIcons((t) => !t);
-              }, [])}
+              }, [setShowIcons])}
             />
             Enable icons
           </label>
@@ -106,19 +130,30 @@ function GraphContainer({ graph }: { graph: IGraph }) {
               checked={showNodeTexts}
               onChange={useCallback(() => {
                 setShowNodeTexts((t) => !t);
-              }, [])}
+              }, [setShowNodeTexts])}
             />
             Show node title
           </label>
+
           <label className="checkbox">
             <input
               type="checkbox"
               checked={showLinkTexts}
               onChange={useCallback(() => {
                 setShowLinkTexts((t) => !t);
-              }, [])}
+              }, [setShowLinkTexts])}
             />
             Show link titles
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={showLinkValues}
+              onChange={useCallback(() => {
+                setShowLinkValues((t) => !t);
+              }, [setShowLinkValues])}
+            />
+            Apply link values
           </label>
         </div>
       </div>

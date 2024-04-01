@@ -1,0 +1,12 @@
+{
+  "nodes": {
+    "Movie": {
+      "color": "red"
+    }
+  },
+  "relationships": {
+    "ACTED_IN": {
+      "value-field": "supplied"
+    }
+  }
+}

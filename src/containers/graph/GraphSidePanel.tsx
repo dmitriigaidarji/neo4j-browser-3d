@@ -99,8 +99,7 @@ const parseDate = (neo4jDateTime: any): Date => {
     second = 0,
     nanosecond = 0,
   } = neo4jDateTime;
-  console.log(neo4jDateTime);
-  const date = new Date(
+  return new Date(
     year,
     month - 1, // neo4j dates start at 1, js dates start at 0
     day,
@@ -109,8 +108,6 @@ const parseDate = (neo4jDateTime: any): Date => {
     second,
     nanosecond / 1000000, // js dates use milliseconds
   );
-
-  return date;
 };
 function parseValue(value: any) {
   if (typeof value === "object") {

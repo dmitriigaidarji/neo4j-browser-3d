@@ -1,11 +1,14 @@
 import { IFrameQueryResult } from "../frame/FrameContainer";
-import { cloneDeep, uniqBy } from "lodash-es";
+import { cloneDeep, max, uniqBy } from "lodash-es";
 import { Session } from "neo4j-driver";
+import config from "../../config/graph-config.json";
 export interface INode {
   labels: string[];
   elementId: string;
   identity: number;
   properties: any;
+  color?: string;
+  val?: number;
 }
 
 export interface ILink {
@@ -73,17 +76,6 @@ function curveLinksThatAreOfSameStartAndEnd(graph: IGraph) {
       mapped[key] = [link];
     }
   });
-  // Object.values(mapped)
-  //   .filter((t) => t.length > 1)
-  //   .map((links) => {
-  //     console.log(links);
-  //     console.log(
-  //       links.map((t) => [
-  //         graph.nodes.find((n) => n.elementId === t.startNodeElementId),
-  //         graph.nodes.find((n) => n.elementId === t.endNodeElementId),
-  //       ]),
-  //     );
-  //   });
   Object.values(mapped).forEach((links) => {
     const len = links.length;
     const step = 2 / len;
@@ -92,8 +84,57 @@ function curveLinksThatAreOfSameStartAndEnd(graph: IGraph) {
       link.curvature = len > 1 ? len / 10 : 0;
     });
   });
+  return graph;
 }
+export function applyLinkValuesToGraph(graph: IGraph, enable: boolean): IGraph {
+  const nodeValues: { [key: string]: number } = {};
 
+  if (enable) {
+    graph.links.forEach((link) => {
+      const type = link.type as "ACTED_IN";
+      if (config.relationships[type]) {
+        const rule = config.relationships[type];
+        // apply value to nodes
+        const value = link.properties[rule["value-field"]];
+        if (value && typeof value === "number") {
+          const nodeId = link.endNodeElementId;
+          if (nodeValues[nodeId] === undefined) {
+            nodeValues[nodeId] = 1;
+          }
+          nodeValues[nodeId] += value;
+        }
+      }
+    });
+
+    // normalize node values. scale to 10
+    const maxVal = max(Object.values(nodeValues))!;
+    if (maxVal > 10) {
+      const q = maxVal / 10;
+      Object.entries(nodeValues).forEach(([key, val]) => {
+        nodeValues[key] = val / q;
+      });
+    }
+  }
+  graph.nodes.forEach((node) => {
+    // set val. affects node size visual
+    node.val = nodeValues[node.elementId] ?? 1;
+  });
+  return graph;
+}
+function applyRulesToGraph(graph: IGraph): IGraph {
+  graph.nodes.forEach((node) => {
+    // set node color
+    node.labels.forEach((label) => {
+      if (config.nodes[label as "Movie"]?.color) {
+        node.color = config.nodes[label as "Movie"]?.color;
+      }
+    });
+  });
+  return graph;
+}
+function postProcessGraph(graph: IGraph): IGraph {
+  return applyRulesToGraph(curveLinksThatAreOfSameStartAndEnd(graph));
+}
 export function fetchRelationshipsBetweenNodesOfAGraph({
   graph,
   session,
@@ -130,8 +171,7 @@ export function fetchRelationshipsBetweenNodesOfAGraph({
           }
         });
         if (wasAdded) {
-          curveLinksThatAreOfSameStartAndEnd(cloned);
-          return cloned;
+          return postProcessGraph(cloned);
         } else {
           return graph;
         }
@@ -157,6 +197,5 @@ export function processQueryResultsForGraph(data: IFrameQueryResult[]) {
   //     type: "WROTE",
   //   });
   // });
-  curveLinksThatAreOfSameStartAndEnd(graph);
-  return graph;
+  return postProcessGraph(graph);
 }
