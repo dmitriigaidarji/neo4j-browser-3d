@@ -4,27 +4,32 @@ import {
   fetchRelationshipsBetweenNodesOfAGraph,
   IGraph,
 } from "./helpers";
-import { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { SessionContext } from "../../providers/SessionProvider";
 import { cloneDeep } from "lodash-es";
-import { CachedKey } from "../../hooks/useCachedValue";
+import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
 
 function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
   const [graph, setGraph] = useState<IGraph>({ nodes: [], links: [] });
   const { getSession } = useContext(SessionContext);
-
+  const [fetchLinksInBetween, setFetchLinksInBetween] = useCachedValue(
+    CachedKey.fetchLinksInBetween,
+    true as boolean,
+  );
   // fetch extra links between presented nodes, if any
   useEffect(() => {
     setGraph(initialGraph);
-    const session = getSession();
-    fetchRelationshipsBetweenNodesOfAGraph({ graph: initialGraph, session })
-      .then((newGraph) => {
-        setGraph(newGraph);
-      })
-      .finally(() => {
-        session.close();
-      });
-  }, [initialGraph, getSession]);
+    if (fetchLinksInBetween) {
+      const session = getSession();
+      fetchRelationshipsBetweenNodesOfAGraph({ graph: initialGraph, session })
+        .then((newGraph) => {
+          setGraph(newGraph);
+        })
+        .finally(() => {
+          session.close();
+        });
+    }
+  }, [initialGraph, getSession, fetchLinksInBetween]);
 
   const rerenderGraph = useCallback(
     (props?: { [CachedKey.showLinkValues]?: boolean }) => {
@@ -39,10 +44,30 @@ function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
     },
     [setGraph],
   );
-
+  const flipFetchLinksInBetween = useCallback(() => {
+    setFetchLinksInBetween((t) => !t);
+  }, [setFetchLinksInBetween]);
   if (graph.nodes.length === 0) {
     return null;
   }
-  return <GraphContainer graph={graph} rerenderGraph={rerenderGraph} />;
+  return (
+    <GraphContainer
+      graph={graph}
+      rerenderGraph={rerenderGraph}
+      buttonsNode={
+        <>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={fetchLinksInBetween}
+              onChange={flipFetchLinksInBetween}
+            />
+            Animate
+          </label>
+        </>
+      }
+    />
+  );
 }
+
 export default GraphProcessedContainer;

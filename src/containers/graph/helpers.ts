@@ -88,7 +88,7 @@ function curveLinksThatAreOfSameStartAndEnd(graph: IGraph) {
 }
 export function applyLinkValuesToGraph(graph: IGraph, enable: boolean): IGraph {
   const nodeValues: { [key: string]: number } = {};
-
+  const nodeOutgoing: { [key: string]: number } = {};
   if (enable) {
     graph.links.forEach((link) => {
       const type = link.type as "ACTED_IN";
@@ -97,27 +97,49 @@ export function applyLinkValuesToGraph(graph: IGraph, enable: boolean): IGraph {
         // apply value to nodes
         const value = link.properties[rule["value-field"]];
         if (value && typeof value === "number") {
-          const nodeId = link.endNodeElementId;
-          if (nodeValues[nodeId] === undefined) {
-            nodeValues[nodeId] = 1;
+          const inNode = link.endNodeElementId;
+          if (nodeValues[inNode] === undefined) {
+            nodeValues[inNode] = 1;
           }
-          nodeValues[nodeId] += value;
+          nodeValues[inNode] += value;
+
+          const outNode = link.startNodeElementId;
+          if (nodeOutgoing[outNode] === undefined) {
+            nodeOutgoing[outNode] = 1;
+          }
+          nodeOutgoing[outNode] += value;
         }
       }
     });
 
-    // normalize node values. scale to 10
-    const maxVal = max(Object.values(nodeValues))!;
-    if (maxVal > 10) {
-      const q = maxVal / 10;
+    // normalize node values. scale to 100
+    const scale = 1000;
+    const maxVal = max(
+      Object.values(nodeValues).concat(Object.values(nodeOutgoing)),
+    )!;
+    if (maxVal > scale) {
+      const q = maxVal / scale;
       Object.entries(nodeValues).forEach(([key, val]) => {
-        nodeValues[key] = val / q;
+        nodeValues[key] = val / q + 1;
+      });
+      Object.entries(nodeOutgoing).forEach(([key, val]) => {
+        nodeOutgoing[key] = val / q + 1;
       });
     }
+    graph.nodes.forEach((node) => {
+      // set val. affects node size visual
+      node.val = nodeValues[node.elementId];
+
+      if (node.val === undefined) {
+        // node is source node. get value from all outgoing links
+        node.val = nodeOutgoing[node.elementId] ?? 1;
+      }
+    });
+    return graph;
   }
   graph.nodes.forEach((node) => {
     // set val. affects node size visual
-    node.val = nodeValues[node.elementId] ?? 1;
+    node.val = 1;
   });
   return graph;
 }
@@ -133,7 +155,10 @@ function applyRulesToGraph(graph: IGraph): IGraph {
   return graph;
 }
 function postProcessGraph(graph: IGraph): IGraph {
-  return applyRulesToGraph(curveLinksThatAreOfSameStartAndEnd(graph));
+  return applyLinkValuesToGraph(
+    applyRulesToGraph(curveLinksThatAreOfSameStartAndEnd(graph)),
+    true,
+  );
 }
 export function fetchRelationshipsBetweenNodesOfAGraph({
   graph,

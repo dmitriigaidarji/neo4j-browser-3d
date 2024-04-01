@@ -7,6 +7,9 @@
   "relationships": {
     "ACTED_IN": {
       "value-field": "supplied"
+    },
+    "FEEDS": {
+      "value-field": "portion_qty"
     }
   }
 }

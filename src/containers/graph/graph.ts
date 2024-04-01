@@ -63,7 +63,7 @@ export function createGraph({
     })
     .linkThreeObjectExtend(true);
 
-  graph.d3Force("charge")?.strength(-120);
+  graph.d3Force("charge")?.strength(-200);
 
   return graph;
 }

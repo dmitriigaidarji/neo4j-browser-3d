@@ -20,9 +20,11 @@ import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
 function GraphContainer({
   graph,
   rerenderGraph,
+  buttonsNode,
 }: {
   graph: IGraph;
   rerenderGraph: (props?: { [CachedKey.showLinkValues]?: boolean }) => void;
+  buttonsNode: React.ReactNode;
 }) {
   const graphDomRef = useRef<HTMLDivElement>(null);
   const [selectedItem, setSelectedItem] = useState<INode | ILink | null>(null);
@@ -36,10 +38,15 @@ function GraphContainer({
   );
   const [showLinkTexts, setShowLinkTexts] = useCachedValue(
     CachedKey.showLinkTexts,
-    false as boolean,
+    true as boolean,
   );
   const [showLinkValues, setShowLinkValues] = useCachedValue(
     CachedKey.showLinkValues,
+    true as boolean,
+  );
+
+  const [doAnimation, setDoAnimation] = useCachedValue(
+    CachedKey.doAnimation,
     true as boolean,
   );
 
@@ -105,7 +112,17 @@ function GraphContainer({
   }, [graphDomRef, graphInstance, expanded]);
 
   useEffect(() => {
-    graphInstance.graphData(cloneDeep(graph));
+    if (doAnimation) {
+      graphInstance.resumeAnimation();
+    } else {
+      graphInstance.pauseAnimation();
+    }
+  }, [graphInstance, doAnimation]);
+
+  useEffect(() => {
+    const d = cloneDeep(graph);
+    console.log(d);
+    graphInstance.graphData(d);
   }, [graph, graphInstance]);
 
   return (
@@ -155,6 +172,18 @@ function GraphContainer({
             />
             Apply link values
           </label>
+
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={doAnimation}
+              onChange={useCallback(() => {
+                setDoAnimation((t) => !t);
+              }, [setDoAnimation])}
+            />
+            Animate
+          </label>
+          {buttonsNode}
         </div>
       </div>
       <div
@@ -174,3 +203,15 @@ function GraphContainer({
 }
 
 export default GraphContainer;
+//
+// match path1=(mb_start:MaterialBatch)-[:FEEDS*0..5]->(mb:MaterialBatch {batch_id: "R66011", first_receipt_site_id: "GU09", material_id: "F00573015020P" })-[:FEEDS*0..5]->(mb_end:MaterialBatch)
+// where length(path1) >= 1
+//  optional match path2=(start:Vendor)-->(mb_start)
+//     optional match path3=(mb_end)-->(end:Customer)
+//     with apoc.path.combine(apoc.path.combine(path2 , path1) , path3) as path
+//     unwind nodes(path) as n
+//     unwind relationships(path) as r
+//     WITH collect(DISTINCT n) as nodes, collect(DISTINCT r) as rels
+//     return {nodes: nodes, rels:rels} as r
+
+// match path1=(mb_start:MaterialBatch)-[:FEEDS*0..5]->(mb:MaterialBatch {batch_id: "323100", first_receipt_site_id: "IT03", material_id: "F000129372" })-[:FEEDS*0..5]->(mb_end:MaterialBatch)

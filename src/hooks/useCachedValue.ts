@@ -5,6 +5,8 @@ export enum CachedKey {
   showNodeTexts = "showNodeTexts",
   showLinkTexts = "showLinkTexts",
   showLinkValues = "showLinkValues",
+  doAnimation = "doAnimation",
+  fetchLinksInBetween = "fetchLinksInBetween",
 }
 export function getCachedKey(key: CachedKey) {
   return "ui-" + key;

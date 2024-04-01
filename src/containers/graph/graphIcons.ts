@@ -15,6 +15,19 @@ const iconList: IIcon[] = [
     label: "Movie",
     url: "https://cdn-icons-png.flaticon.com/512/2503/2503508.png",
   },
+  {
+    label: "MaterialBatch",
+    url: "/stacks_FILL0_wght400_GRAD0_opsz24.svg",
+  },
+  {
+    label: "Customer",
+    url: "/deployed_code_account_FILL1_wght400_GRAD0_opsz24.svg",
+  },
+  {
+    label: "Vendor",
+    url: "/trolley_FILL1_wght400_GRAD0_opsz24.svg",
+  },
+  { label: "Position", url: "/person_FILL1_wght400_GRAD0_opsz24.svg" },
 ];
 function setGraphIcons({
   graph,
@@ -58,20 +71,21 @@ function setGraphIcons({
       labelContainer.textContent = node.labels.join("|");
 
       titleContainer.textContent =
+        properties.ntid ??
         properties.name ??
         properties.title ??
         properties.batch_id ??
         properties.material_id ??
         properties.site_id ??
-        properties.vendor_id ??
-        properties.customer_id ??
+        properties.vendor_name ??
+        properties.customer_name ??
         "";
 
       textContainer.style.color = (node as unknown as any).color ?? "";
       textContainer.style.textShadow =
         "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
 
-      textContainer.append(labelContainer);
+      // textContainer.append(labelContainer);
       textContainer.append(titleContainer);
 
       nodeEl.append(textContainer);

@@ -51,6 +51,8 @@ function FrameContainer({
   }, [handleFetchData, value]);
 
   useEffect(() => {
+    setValue("");
+    setData(null);
     const v = defaultQuery ?? "";
     setValue(v);
     if (v.length > 0) {
