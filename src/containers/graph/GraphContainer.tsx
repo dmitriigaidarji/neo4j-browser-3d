@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { applyLinkValuesToGraph, IGraph, ILink, INode } from "./helpers";
+import { IGraph, ILink, INode } from "./helpers";
 import { cloneDeep } from "lodash-es";
 // @ts-ignore
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
