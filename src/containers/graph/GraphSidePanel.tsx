@@ -114,10 +114,12 @@ const parseDate = (neo4jDateTime: any): Date => {
 };
 function parseValue(value: any) {
   if (typeof value === "object") {
-    if (["year", "month", "day"].every((key) => value[key] != undefined)) {
+    if (["year", "month", "day"].every((key) => value[key] !== undefined)) {
       return parseDate(value).toLocaleDateString();
     }
-    if (["days", "months", "seconds"].every((key) => value[key] != undefined)) {
+    if (
+      ["days", "months", "seconds"].every((key) => value[key] !== undefined)
+    ) {
       return new Duration(
         value.months,
         value.days,
