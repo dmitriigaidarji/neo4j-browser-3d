@@ -62,7 +62,7 @@ function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
               checked={fetchLinksInBetween}
               onChange={flipFetchLinksInBetween}
             />
-            Animate
+            Fetch links in between all nodes
           </label>
         </>
       }
