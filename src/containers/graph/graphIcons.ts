@@ -1,7 +1,8 @@
 import { ForceGraph3DInstance } from "3d-force-graph";
 // @ts-ignore
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer";
-
+// @ts-ignore
+import { Vector3 } from "three";
 interface IIcon {
   label: string;
   url: string;
@@ -38,60 +39,69 @@ function setGraphIcons({
   showNodeIcons: boolean;
   showNodeTexts: boolean;
 }) {
+  const camera = graph.cameraPosition();
+  const cameraV = new Vector3(camera.x, camera.y, camera.z);
+  const visibleTextDistance = 300;
   graph.nodeThreeObject((node: any) => {
-    const nodeEl = document.createElement("div");
-    nodeEl.style.textAlign = "center";
+    const pos = new Vector3(node.x, node.y, node.z);
+    const distance = cameraV.distanceTo(pos);
+    if (distance < visibleTextDistance) {
+      const nodeEl = document.createElement("div");
+      nodeEl.style.textAlign = "center";
 
-    if (showNodeIcons) {
-      let icon: IIcon | null = null;
-      for (const label of node.labels) {
-        icon = iconList.find((t) => t.label === label) ?? null;
+      if (showNodeIcons) {
+        let icon: IIcon | null = null;
+        for (const label of node.labels) {
+          icon = iconList.find((t) => t.label === label) ?? null;
+          if (icon) {
+            break;
+          }
+        }
         if (icon) {
-          break;
+          const imgContainer = document.createElement("div");
+
+          const img = document.createElement("img");
+          img.src = icon.url;
+          img.style.width = "30px";
+          imgContainer.append(img);
+          nodeEl.append(imgContainer);
         }
       }
-      if (icon) {
-        const imgContainer = document.createElement("div");
 
-        const img = document.createElement("img");
-        img.src = icon.url;
-        img.style.width = "30px";
-        imgContainer.append(img);
-        nodeEl.append(imgContainer);
+      if (showNodeTexts) {
+        const textContainer = document.createElement("div");
+        const labelContainer = document.createElement("div");
+        const titleContainer = document.createElement("div");
+
+        const properties = (node as any).properties;
+
+        labelContainer.textContent = node.labels.join("|");
+
+        titleContainer.textContent =
+          properties.ntid ??
+          properties.name ??
+          properties.title ??
+          properties.batch_id ??
+          properties.material_id ??
+          properties.site_id ??
+          properties.vendor_name ??
+          properties.customer_name ??
+          "";
+
+        textContainer.style.color = (node as unknown as any).color ?? "";
+        textContainer.style.textShadow =
+          "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
+
+        // textContainer.append(labelContainer);
+        textContainer.append(titleContainer);
+
+        nodeEl.append(textContainer);
       }
+
+      return new CSS2DObject(nodeEl);
+    } else {
+      return false;
     }
-
-    if (showNodeTexts) {
-      const textContainer = document.createElement("div");
-      const labelContainer = document.createElement("div");
-      const titleContainer = document.createElement("div");
-
-      const properties = (node as any).properties;
-
-      labelContainer.textContent = node.labels.join("|");
-
-      titleContainer.textContent =
-        properties.ntid ??
-        properties.name ??
-        properties.title ??
-        properties.batch_id ??
-        properties.material_id ??
-        properties.site_id ??
-        properties.vendor_name ??
-        properties.customer_name ??
-        "";
-
-      textContainer.style.color = (node as unknown as any).color ?? "";
-      textContainer.style.textShadow =
-        "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
-
-      // textContainer.append(labelContainer);
-      textContainer.append(titleContainer);
-
-      nodeEl.append(textContainer);
-    }
-
-    return new CSS2DObject(nodeEl);
   });
 }
 

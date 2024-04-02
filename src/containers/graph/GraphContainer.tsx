@@ -9,7 +9,8 @@ import { IGraph, ILink, INode } from "./helpers";
 import { cloneDeep } from "lodash-es";
 // @ts-ignore
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-
+// @ts-ignore
+import { Vector3 } from "three";
 import "./graph.scss";
 import { createGraph } from "./graph";
 import GraphSidePanel from "./GraphSidePanel";
@@ -30,11 +31,11 @@ function GraphContainer({
   const [selectedItem, setSelectedItem] = useState<INode | ILink | null>(null);
   const [showIcons, setShowIcons] = useCachedValue(
     CachedKey.showIcons,
-    false as boolean,
+    true as boolean,
   );
   const [showNodeTexts, setShowNodeTexts] = useCachedValue(
     CachedKey.showNodeTexts,
-    false as boolean,
+    true as boolean,
   );
   const [showLinkTexts, setShowLinkTexts] = useCachedValue(
     CachedKey.showLinkTexts,
@@ -118,11 +119,30 @@ function GraphContainer({
   }, [graph, graphInstance]);
 
   useEffect(() => {
+    let camera = graphInstance.cameraPosition();
+
+    const interval = setInterval(() => {
+      const new_camera = graphInstance.cameraPosition();
+      const distance = new Vector3(camera.x, camera.y, camera.z).distanceTo(
+        new Vector3(new_camera.x, new_camera.y, new_camera.z),
+      );
+      if (distance > 100) {
+        camera = new_camera;
+        setGraphIcons({
+          graph: graphInstance,
+          showNodeIcons: showIcons,
+          showNodeTexts,
+        });
+      }
+    }, 1000);
     setGraphIcons({
       graph: graphInstance,
       showNodeIcons: showIcons,
       showNodeTexts,
     });
+    return function () {
+      clearInterval(interval);
+    };
   }, [graphInstance, showIcons, showNodeTexts]);
 
   return (
