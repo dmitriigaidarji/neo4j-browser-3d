@@ -179,7 +179,16 @@ function applyRulesToGraph(graph: IGraph): IGraph {
 function applyColors(graph: IGraph): IGraph {
   const colorMap: { [key: string]: string } = {};
   const labels = uniq(graph.nodes.map((t) => t.labels.join("|")));
-  labels.forEach((t) => (colorMap[t] = interpolateRainbow(Math.random())));
+  if (labels.length === 1) {
+    colorMap[labels[0]] = interpolateRainbow(Math.random());
+  } else {
+    const offset = 0.1;
+    const adjustment = Math.random() * 0.1;
+    const step = (1 - offset * 2) / Math.max(labels.length - 1, 1);
+    labels.forEach((t, index) => {
+      colorMap[t] = interpolateRainbow(index * step + offset + adjustment);
+    });
+  }
   graph.nodes.forEach((t) => (t.color = colorMap[t.labels.join("|")]));
   return graph;
 }

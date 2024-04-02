@@ -41,7 +41,7 @@ export function createGraph({
     .linkCurvature("curvature")
     .linkCurveRotation("rotation")
     .linkDirectionalParticles((link) => (highlightLinks.has(link) ? 5 : 2))
-    .linkDirectionalParticleWidth(1)
+    .linkDirectionalParticleWidth(2)
     .linkDirectionalParticleColor((t) => "orange")
     .nodeThreeObjectExtend(true)
     .onNodeClick((node: any) => {
