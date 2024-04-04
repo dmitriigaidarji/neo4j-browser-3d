@@ -29,6 +29,15 @@ function GraphContainer({
 }) {
   const graphDomRef = useRef<HTMLDivElement>(null);
   const [selectedItem, setSelectedItem] = useState<INode | ILink | null>(null);
+  const [highlight] = useState<{
+    nodes: Set<any>;
+    links: Set<any>;
+    node: object | null;
+  }>({
+    nodes: new Set(),
+    links: new Set(),
+    node: null,
+  });
   const [showIcons, setShowIcons] = useCachedValue(
     CachedKey.showIcons,
     true as boolean,
@@ -59,8 +68,9 @@ function GraphContainer({
     () =>
       createGraph({
         onSelect: setSelectedItem,
+        highlight,
       }),
-    [setSelectedItem],
+    [highlight, setSelectedItem],
   );
 
   useEffect(() => {
@@ -121,6 +131,14 @@ function GraphContainer({
   useEffect(() => {
     let camera = graphInstance.cameraPosition();
 
+    function setIcons() {
+      setGraphIcons({
+        graph: graphInstance,
+        showNodeIcons: showIcons,
+        showNodeTexts,
+        highlight,
+      });
+    }
     const interval = setInterval(() => {
       const new_camera = graphInstance.cameraPosition();
       const distance = new Vector3(camera.x, camera.y, camera.z).distanceTo(
@@ -128,22 +146,15 @@ function GraphContainer({
       );
       if (distance > 100) {
         camera = new_camera;
-        setGraphIcons({
-          graph: graphInstance,
-          showNodeIcons: showIcons,
-          showNodeTexts,
-        });
+        setIcons();
       }
     }, 1000);
-    setGraphIcons({
-      graph: graphInstance,
-      showNodeIcons: showIcons,
-      showNodeTexts,
-    });
+
+    setIcons();
     return function () {
       clearInterval(interval);
     };
-  }, [graphInstance, showIcons, showNodeTexts]);
+  }, [highlight, graphInstance, showIcons, showNodeTexts]);
 
   return (
     <div

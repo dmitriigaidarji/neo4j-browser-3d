@@ -5,14 +5,18 @@ import {
 } from "three/examples/jsm/renderers/CSS2DRenderer";
 import { ILink, INode } from "./helpers";
 
+export interface IGraphHighlight {
+  nodes: Set<any>;
+  links: Set<any>;
+  node: object | null;
+}
 export function createGraph({
   onSelect,
+  highlight,
 }: {
   onSelect: (item: INode | ILink) => any;
+  highlight: IGraphHighlight;
 }) {
-  const highlightNodes = new Set();
-  const highlightLinks = new Set();
-  let hoverNode: any = null;
   const graph = ForceGraph3D({
     extraRenderers: [new CSS2DRenderer() as unknown as any],
   })
@@ -21,14 +25,14 @@ export function createGraph({
     .linkSource("startNodeElementId")
     .linkTarget("endNodeElementId")
     .nodeColor((node: any) =>
-      highlightNodes.has(node)
-        ? node === hoverNode
+      highlight.nodes.has(node)
+        ? node === highlight.node
           ? "rgb(255,0,0,1)"
           : "rgba(255,160,0,0.8)"
         : node.color,
     )
     .linkAutoColorBy((t) => (t as unknown as ILink).type)
-    .linkWidth((link) => (highlightLinks.has(link) ? 4 : 0.5))
+    .linkWidth((link) => (highlight.links.has(link) ? 4 : 0.5))
     .nodeResolution(16)
     // .nodeVal((t) => {
     //   // console.log(t);
@@ -40,7 +44,7 @@ export function createGraph({
     .linkDirectionalArrowRelPos(1)
     .linkCurvature("curvature")
     .linkCurveRotation("rotation")
-    .linkDirectionalParticles((link) => (highlightLinks.has(link) ? 5 : 2))
+    .linkDirectionalParticles((link) => (highlight.links.has(link) ? 4 : 1))
     .linkDirectionalParticleWidth(2)
     .linkDirectionalParticleColor((t) => "orange")
     .nodeThreeObjectExtend(true)
@@ -72,30 +76,30 @@ export function createGraph({
     .onNodeHover((inputNode) => {
       const node = inputNode as unknown as INode | null;
       // no state change
-      if ((!node && !highlightNodes.size) || (node && hoverNode === node))
+      if ((!node && !highlight.nodes.size) || (node && highlight.node === node))
         return;
 
-      highlightNodes.clear();
-      highlightLinks.clear();
+      highlight.nodes.clear();
+      highlight.links.clear();
       if (node) {
-        highlightNodes.add(node);
-        node.neighbors.forEach((neighbor) => highlightNodes.add(neighbor));
-        node.links.forEach((link) => highlightLinks.add(link));
+        highlight.nodes.add(node);
+        node.neighbors.forEach((neighbor) => highlight.nodes.add(neighbor));
+        node.links.forEach((link) => highlight.links.add(link));
       }
 
-      hoverNode = node || null;
+      highlight.node = node || null;
 
       updateHighlight();
     })
     .onLinkHover((inputLink) => {
       const link = inputLink as unknown as ILink | null;
-      highlightNodes.clear();
-      highlightLinks.clear();
+      highlight.nodes.clear();
+      highlight.links.clear();
 
       if (link) {
-        highlightLinks.add(link);
-        highlightNodes.add(link.source);
-        highlightNodes.add(link.target);
+        highlight.links.add(link);
+        highlight.nodes.add(link.source);
+        highlight.nodes.add(link.target);
       }
 
       updateHighlight();
@@ -107,7 +111,8 @@ export function createGraph({
     graph
       .nodeColor(graph.nodeColor())
       .linkWidth(graph.linkWidth())
-      .linkDirectionalParticles(graph.linkDirectionalParticles());
+      .linkDirectionalParticles(graph.linkDirectionalParticles())
+      .nodeThreeObject(graph.nodeThreeObject());
   }
   return graph;
 }

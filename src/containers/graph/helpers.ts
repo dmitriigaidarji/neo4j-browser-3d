@@ -3,7 +3,14 @@ import { cloneDeep, max, uniq, uniqBy } from "lodash-es";
 import { Session } from "neo4j-driver";
 import config from "../../config/graph-config.json";
 import { interpolateRainbow } from "d3-scale-chromatic";
-
+const colorScheme = [
+  "#65ff30",
+  "#fd8720",
+  "#00ffb0",
+  "#ff3b3b",
+  "#faca00",
+  "#c96dea",
+];
 export interface INode {
   labels: string[];
   elementId: string;
@@ -176,11 +183,24 @@ function applyRulesToGraph(graph: IGraph): IGraph {
   });
   return graph;
 }
+function getRandomInt(min: number, max: number) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 function applyColors(graph: IGraph): IGraph {
   const colorMap: { [key: string]: string } = {};
   const labels = uniq(graph.nodes.map((t) => t.labels.join("|")));
-  if (labels.length === 1) {
-    colorMap[labels[0]] = interpolateRainbow(Math.random());
+  if (labels.length <= colorScheme.length) {
+    const colors: string[] = [];
+    for (let i = 0; i < colorScheme.length; i++) {
+      colors[i] = colorScheme[i];
+    }
+    labels.forEach((t, index) => {
+      const i = getRandomInt(0, colors.length - 1);
+      const val = colors.splice(i, 1);
+      colorMap[t] = val[0];
+    });
   } else {
     const offset = 0.1;
     const adjustment = Math.random() * 0.1;

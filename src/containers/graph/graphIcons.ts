@@ -3,6 +3,7 @@ import { ForceGraph3DInstance } from "3d-force-graph";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer";
 // @ts-ignore
 import { Vector3 } from "three";
+import { IGraphHighlight } from "./graph";
 interface IIcon {
   label: string;
   url: string;
@@ -34,10 +35,12 @@ function setGraphIcons({
   graph,
   showNodeIcons,
   showNodeTexts,
+  highlight,
 }: {
   graph: ForceGraph3DInstance;
   showNodeIcons: boolean;
   showNodeTexts: boolean;
+  highlight: IGraphHighlight;
 }) {
   const camera = graph.cameraPosition();
   const cameraV = new Vector3(camera.x, camera.y, camera.z);
@@ -45,7 +48,9 @@ function setGraphIcons({
   graph.nodeThreeObject((node: any) => {
     const pos = new Vector3(node.x, node.y, node.z);
     const distance = cameraV.distanceTo(pos);
-    if (distance < visibleTextDistance) {
+    const isHighlighted = highlight.node === node;
+    const showSomething = distance < visibleTextDistance || isHighlighted;
+    if (showSomething) {
       const nodeEl = document.createElement("div");
       nodeEl.style.textAlign = "center";
 
@@ -68,7 +73,7 @@ function setGraphIcons({
         }
       }
 
-      if (showNodeTexts) {
+      if (showNodeTexts || isHighlighted) {
         const textContainer = document.createElement("div");
         const labelContainer = document.createElement("div");
         const titleContainer = document.createElement("div");
@@ -92,7 +97,9 @@ function setGraphIcons({
         textContainer.style.textShadow =
           "-1px 0 black, 0 1px black, 1px 0 black, 0 -1px black";
 
-        // textContainer.append(labelContainer);
+        if (isHighlighted) {
+          textContainer.append(labelContainer);
+        }
         textContainer.append(titleContainer);
 
         nodeEl.append(textContainer);
