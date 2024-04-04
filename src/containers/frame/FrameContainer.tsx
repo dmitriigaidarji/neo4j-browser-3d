@@ -55,14 +55,11 @@ function FrameContainer({
     setData(null);
     const v = defaultQuery ?? "";
     setValue(v);
-    if (v.length > 0) {
-      handleFetchData(v);
-    }
-  }, [handleFetchData, defaultQuery]);
+  }, [defaultQuery]);
 
   return (
     <div>
-      <div className="control has-icons-right is-bordered block">
+      <div className="control has-icons-right is-bordered block cyphercontainer">
         <CypherEditor value={value} schema={schema} onValueChanged={setValue} />
         <span
           className="icon is-medium is-right play-button"

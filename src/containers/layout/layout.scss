@@ -1,0 +1,14 @@
+.AppLayoutContainer {
+  white-space: nowrap;
+  > div {
+    display: inline-block;
+    vertical-align: top;
+    overflow-y: auto;
+    white-space: normal;
+
+    &:nth-child(1) {
+      width: 400px;
+      background: #282c34;
+    }
+  }
+}

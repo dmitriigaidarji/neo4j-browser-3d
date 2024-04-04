@@ -2,13 +2,13 @@ import React from "react";
 import "./App.css";
 import AuthProvider from "./providers/AuthProvider";
 import "bulma/bulma.scss";
-import QueryTabsContainer from "./containers/query-tabs/QueryTabsContainer";
+import Layout from "./containers/layout/Layout";
 
 function App() {
   return (
     <div className="App">
       <AuthProvider>
-        <QueryTabsContainer />
+        <Layout />
       </AuthProvider>
     </div>
   );

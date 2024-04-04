@@ -1,7 +1,7 @@
 import FrameContainer from "../frame/FrameContainer";
 import { FC, useCallback, useState, MouseEvent, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-
+import "./tabs.scss";
 function createSavedQuery(): ISavedQuery {
   return {
     id: uuidv4(),
@@ -54,36 +54,41 @@ function QueryTabsContainer() {
   }, [selected, queries]);
 
   return (
-    <div className={"box block"}>
-      <div className="tabs is-boxed">
-        <ul>
-          {queries.map((item) => (
-            <Tab
-              item={item}
-              selected={selected.id}
-              onClick={setSelected}
-              key={item.id}
-              onDelete={handleDelete}
-            />
-          ))}
-          <li
-            onClick={useCallback(() => {
-              const q = createSavedQuery();
-              setQueries((t) => {
-                const n = t.slice();
-                n.push(q);
-                return n;
-              });
-              setSelected(q);
-            }, [])}
-          >
-            <a href={"#!"}>
-              <span>+</span>
-            </a>
-          </li>
-        </ul>
+    <div className={"MainView"}>
+      <div className={"box block"}>
+        <div className="tabs is-boxed">
+          <ul>
+            {queries.map((item) => (
+              <Tab
+                item={item}
+                selected={selected.id}
+                onClick={setSelected}
+                key={item.id}
+                onDelete={handleDelete}
+              />
+            ))}
+            <li
+              onClick={useCallback(() => {
+                const q = createSavedQuery();
+                setQueries((t) => {
+                  const n = t.slice();
+                  n.push(q);
+                  return n;
+                });
+                setSelected(q);
+              }, [])}
+            >
+              <a href={"#!"}>
+                <span>+</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+        <FrameContainer
+          defaultQuery={selected.query}
+          cacheQuery={handleUpdate}
+        />
       </div>
-      <FrameContainer defaultQuery={selected.query} cacheQuery={handleUpdate} />
     </div>
   );
 }
