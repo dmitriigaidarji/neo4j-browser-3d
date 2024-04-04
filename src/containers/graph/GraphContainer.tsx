@@ -101,9 +101,18 @@ function GraphContainer({
     function updateSize() {
       if (graphDomRef.current) {
         graphInstance
-          .width(graphDomRef.current.getBoundingClientRect().width)
+          .width(
+            expanded
+              ? window.innerWidth
+              : graphDomRef.current.getBoundingClientRect().width,
+          )
           .height(
-            Math.max(600, graphDomRef.current.getBoundingClientRect().height),
+            expanded
+              ? window.innerHeight - 54
+              : Math.max(
+                  600,
+                  graphDomRef.current.getBoundingClientRect().height,
+                ),
           );
       }
     }

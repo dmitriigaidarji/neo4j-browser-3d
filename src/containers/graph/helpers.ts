@@ -4,7 +4,7 @@ import { Session } from "neo4j-driver";
 import config from "../../config/graph-config.json";
 import { interpolateRainbow } from "d3-scale-chromatic";
 const colorScheme = [
-  "#65ff30",
+  "#3eb017",
   "#fd8720",
   "#00ffb0",
   "#ff3b3b",
@@ -78,25 +78,45 @@ function getUniqueNodesAndLinks(data: IFrameQueryResult[]) {
 }
 
 function curveLinksThatAreOfSameStartAndEnd(graph: IGraph) {
-  const mapped: { [key: string]: ILink[] } = {};
+  const mapped: {
+    [key: string]: {
+      outgoing: ILink[];
+      incoming: ILink[];
+    };
+  } = {};
+
   graph.links.forEach((link) => {
     const key = [link.startNodeElementId, link.endNodeElementId]
       .sort()
       .join("|");
-    if (mapped[key]) {
-      mapped[key].push(link);
+    const inverted = key.indexOf(link.endNodeElementId) === 0;
+    if (!mapped[key]) {
+      mapped[key] = {
+        incoming: [],
+        outgoing: [],
+      };
+    }
+    const block = mapped[key];
+    if (inverted) {
+      block.incoming.push(link);
     } else {
-      mapped[key] = [link];
+      block.outgoing.push(link);
     }
   });
   Object.values(mapped).forEach((links) => {
-    const len = links.length;
+    const { incoming, outgoing } = links;
+    const len = incoming.length + outgoing.length;
     const step = 2 / len;
-    links.forEach((link, i) => {
+    incoming.forEach((link, i) => {
       link.rotation = Math.PI * step * (i + 1);
       link.curvature = len > 1 ? len / 10 : 0;
     });
+    outgoing.forEach((link, i) => {
+      link.rotation = -Math.PI * step * (i + 1);
+      link.curvature = len > 1 ? len / 10 : 0;
+    });
   });
+
   return graph;
 }
 export function applyLinkValuesToGraph(graph: IGraph, enable: boolean): IGraph {
@@ -284,18 +304,30 @@ export function fetchRelationshipsBetweenNodesOfAGraph({
 
 export function processQueryResultsForGraph(data: IFrameQueryResult[]) {
   const graph = getUniqueNodesAndLinks(cloneDeep(data));
-  //
+
   // [0, 1, 2, 3, 4, 5, 6, 7, 8].forEach((i) => {
   //   graph.links.push({
   //     curvature: 0.8,
   //     elementId: "5:3d2f91a4-814c-4347-a79f-915751885b1" + i,
   //     end: 119,
-  //     endNodeElementId: "4:3d2f91a4-814c-4347-a79f-9215751885b2:119",
+  //     endNodeElementId: "4:4ba6e269-9d48-4021-8ea5-ac4f0661e840:474711343",
   //     identity: 169,
   //     properties: {},
   //     rotation: 0,
   //     start: 5,
-  //     startNodeElementId: "4:3d2f91a4-814c-4347-a79f-9215751885b2:5",
+  //     startNodeElementId: "4:4ba6e269-9d48-4021-8ea5-ac4f0661e840:879961854",
+  //     type: "WROTE",
+  //   });
+  //   graph.links.push({
+  //     curvature: 0.8,
+  //     elementId: "5:3d2f91a4-814c-4347-a79f-915751885b1" + i,
+  //     end: 119,
+  //     startNodeElementId: "4:4ba6e269-9d48-4021-8ea5-ac4f0661e840:474711343",
+  //     identity: 169,
+  //     properties: {},
+  //     rotation: 0,
+  //     start: 5,
+  //     endNodeElementId: "4:4ba6e269-9d48-4021-8ea5-ac4f0661e840:879961854",
   //     type: "WROTE",
   //   });
   // });

@@ -8,7 +8,8 @@
     }
   }
   &.is-position-absolute {
-    position: absolute;
+    position: fixed !important;
+    background-color: var(--bulma-body-background-color);
     z-index: 100;
     width: 100vw;
     height: 100vh;
