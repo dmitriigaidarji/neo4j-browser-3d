@@ -61,6 +61,7 @@ function useDagModeSelector() {
 
   return {
     mode,
+    setMode,
     node: (
       <select onChange={handleChange} value={mode}>
         {modes.map((t) => (

@@ -62,7 +62,7 @@ function GraphContainer({
     true as boolean,
   );
 
-  const { mode, node: layoutNode } = useDagModeSelector();
+  const { mode, setMode, node: layoutNode } = useDagModeSelector();
 
   useEffect(() => {
     rerenderGraph({ showLinkValues });
@@ -144,8 +144,11 @@ function GraphContainer({
     graphDagMode({
       graph: graphInstance,
       mode,
+      onError: () => {
+        setMode("default");
+      },
     });
-  }, [graphInstance, mode]);
+  }, [graphInstance, mode, setMode]);
 
   useEffect(() => {
     let camera = graphInstance.cameraPosition();
