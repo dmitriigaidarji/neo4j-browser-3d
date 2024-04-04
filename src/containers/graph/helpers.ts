@@ -132,10 +132,12 @@ export function applyLinkValuesToGraph(graph: IGraph, enable: boolean): IGraph {
         if (rawvalue && typeof rawvalue === "number") {
           let value = rawvalue;
           if (link.properties.buom) {
-            const buom = link.properties.buom as "GM" | "MG" | "ML";
+            const buom = link.properties.buom as "GM" | "MG" | "ML" | "TB";
+
             switch (buom) {
               case "GM":
               case "ML":
+              case "TB":
                 value /= 1000;
                 break;
               case "MG":
@@ -304,7 +306,11 @@ export function fetchRelationshipsBetweenNodesOfAGraph({
 
 export function processQueryResultsForGraph(data: IFrameQueryResult[]) {
   const graph = getUniqueNodesAndLinks(cloneDeep(data));
-
+  // graph.links.forEach((l) => {
+  //   if (l.properties.portion_qty === 6824831) {
+  //     l.properties.portion_qty = 1;
+  //   }
+  // });
   // [0, 1, 2, 3, 4, 5, 6, 7, 8].forEach((i) => {
   //   graph.links.push({
   //     curvature: 0.8,

@@ -55,10 +55,7 @@ function FrameContainer({
     setData(null);
     const v = defaultQuery ?? "";
     setValue(v);
-    if (v.length > 0) {
-      handleFetchData(v);
-    }
-  }, [handleFetchData, defaultQuery]);
+  }, [defaultQuery]);
 
   return (
     <div>

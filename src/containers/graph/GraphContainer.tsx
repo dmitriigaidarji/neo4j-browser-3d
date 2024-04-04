@@ -17,6 +17,8 @@ import GraphSidePanel from "./GraphSidePanel";
 import setGraphIcons from "./graphIcons";
 import setGraphLinkTexts from "./graphLinkTexts";
 import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
+import useDagModeSelector from "./useDagModeSelector";
+import graphDagMode from "./graphDagMode";
 
 function GraphContainer({
   graph,
@@ -60,6 +62,8 @@ function GraphContainer({
     true as boolean,
   );
 
+  const { mode, node: layoutNode } = useDagModeSelector();
+
   useEffect(() => {
     rerenderGraph({ showLinkValues });
   }, [showLinkValues, rerenderGraph]);
@@ -86,7 +90,7 @@ function GraphContainer({
     if (graphDomRef.current) {
       graphInstance(graphDomRef.current);
       const bloomPass = new UnrealBloomPass();
-      bloomPass.strength = 1.1;
+      bloomPass.strength = 0.8;
       bloomPass.radius = 1;
       bloomPass.threshold = 0;
       graphInstance.postProcessingComposer().addPass(bloomPass);
@@ -133,9 +137,15 @@ function GraphContainer({
 
   useEffect(() => {
     const d = cloneDeep(graph);
-    console.log(d);
     graphInstance.graphData(d);
   }, [graph, graphInstance]);
+
+  useEffect(() => {
+    graphDagMode({
+      graph: graphInstance,
+      mode,
+    });
+  }, [graphInstance, mode]);
 
   useEffect(() => {
     let camera = graphInstance.cameraPosition();
@@ -171,6 +181,10 @@ function GraphContainer({
     >
       <div>
         <div className={"controls"}>
+          <label>
+            {layoutNode}
+            Layout
+          </label>
           <label className="checkbox">
             <input
               type="checkbox"
