@@ -8,6 +8,7 @@ export enum CachedKey {
   doAnimation = "doAnimation",
   fetchLinksInBetween = "fetchLinksInBetween",
   dagMode = "dagMode",
+  visibleTextDistance = "visibleTextDistance",
 }
 export function getCachedKey(key: CachedKey) {
   return "ui-" + key;

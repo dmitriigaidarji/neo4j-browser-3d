@@ -61,6 +61,10 @@ function GraphContainer({
     CachedKey.doAnimation,
     true as boolean,
   );
+  const [visibleTextDistance, setVisibleTextDistance] = useCachedValue(
+    CachedKey.visibleTextDistance,
+    500 as number,
+  );
 
   const { mode, setMode, node: layoutNode } = useDagModeSelector();
 
@@ -159,6 +163,7 @@ function GraphContainer({
         showNodeIcons: showIcons,
         showNodeTexts,
         highlight,
+        visibleTextDistance,
       });
     }
     const interval = setInterval(() => {
@@ -176,7 +181,7 @@ function GraphContainer({
     return function () {
       clearInterval(interval);
     };
-  }, [highlight, graphInstance, showIcons, showNodeTexts]);
+  }, [highlight, graphInstance, showIcons, showNodeTexts, visibleTextDistance]);
 
   return (
     <div
@@ -209,6 +214,19 @@ function GraphContainer({
             Show node title
           </label>
 
+          <label className="checkbox">
+            <input
+              type="number"
+              value={visibleTextDistance}
+              onChange={useCallback(
+                (event: React.ChangeEvent<HTMLInputElement>) => {
+                  setVisibleTextDistance(parseInt(event.currentTarget.value));
+                },
+                [setVisibleTextDistance],
+              )}
+            />
+            Distance to node to show titles
+          </label>
           <label className="checkbox">
             <input
               type="checkbox"

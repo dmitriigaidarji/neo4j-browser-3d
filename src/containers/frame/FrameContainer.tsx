@@ -53,20 +53,19 @@ function FrameContainer({
   useEffect(() => {
     setValue("");
     setData(null);
-    const v = defaultQuery ?? "";
-    setValue(v);
+    setValue(defaultQuery ?? "");
   }, [defaultQuery]);
 
   return (
     <div>
       <div className="control has-icons-right is-bordered block cyphercontainer">
-        <CypherEditor value={value} schema={schema} onValueChanged={setValue} />
         <span
           className="icon is-medium is-right play-button"
           onClick={handleSubmit}
         >
           <i className="fas fa-play"></i>
         </span>
+        <CypherEditor value={value} schema={schema} onValueChanged={setValue} />
       </div>
       {loading && (
         <div className={"field block"}>

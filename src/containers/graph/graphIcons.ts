@@ -36,15 +36,16 @@ function setGraphIcons({
   showNodeIcons,
   showNodeTexts,
   highlight,
+  visibleTextDistance,
 }: {
   graph: ForceGraph3DInstance;
   showNodeIcons: boolean;
   showNodeTexts: boolean;
   highlight: IGraphHighlight;
+  visibleTextDistance: number;
 }) {
   const camera = graph.cameraPosition();
   const cameraV = new Vector3(camera.x, camera.y, camera.z);
-  const visibleTextDistance = 300;
   graph.nodeThreeObject((node: any) => {
     const pos = new Vector3(node.x, node.y, node.z);
     const distance = cameraV.distanceTo(pos);

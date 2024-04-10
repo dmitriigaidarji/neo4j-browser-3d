@@ -2,7 +2,6 @@ import React, { createContext, PropsWithChildren, useCallback } from "react";
 import LoginContainer from "../containers/login/LoginContainer";
 import neo4j, { Driver, ServerInfo } from "neo4j-driver";
 import SessionProvider from "./SessionProvider";
-import ConnectionStatus from "../containers/connection-status/ConnectionStatus";
 
 interface IAuthContext {
   connect: (props: {
@@ -13,6 +12,7 @@ interface IAuthContext {
     database?: string;
   }) => Promise<ServerInfo>;
   disconnect: () => void;
+  serverInfo: IConnectionInfo | null;
 }
 
 export interface IConnectionInfo extends ServerInfo {
@@ -23,6 +23,7 @@ export interface IConnectionInfo extends ServerInfo {
 export const AuthContext = createContext<IAuthContext>({
   connect: () => Promise.resolve({}),
   disconnect: () => {},
+  serverInfo: null,
 });
 
 function AuthProvider({ children }: PropsWithChildren) {
@@ -64,8 +65,9 @@ function AuthProvider({ children }: PropsWithChildren) {
     () => ({
       connect,
       disconnect,
+      serverInfo,
     }),
-    [connect, disconnect],
+    [connect, disconnect, serverInfo],
   );
 
   React.useEffect(() => {
@@ -87,7 +89,6 @@ function AuthProvider({ children }: PropsWithChildren) {
       ) : (
         <LoginContainer />
       )}
-      <ConnectionStatus info={serverInfo} />
     </AuthContext.Provider>
   );
 }

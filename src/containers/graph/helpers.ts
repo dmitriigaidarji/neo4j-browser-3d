@@ -235,17 +235,18 @@ function applyColors(graph: IGraph): IGraph {
   return graph;
 }
 function crossLink(graph: IGraph): IGraph {
+  graph.nodes.forEach((n) => {
+    n.neighbors = [];
+    n.links = [];
+  });
   // cross-link node objects
   graph.links.forEach((link) => {
     const a = graph.nodes.find((t) => t.elementId === link.startNodeElementId)!;
     const b = graph.nodes.find((t) => t.elementId === link.endNodeElementId)!;
-    !a.neighbors && (a.neighbors = []);
-    !b.neighbors && (b.neighbors = []);
+
     a.neighbors.push(b);
     b.neighbors.push(a);
 
-    !a.links && (a.links = []);
-    !b.links && (b.links = []);
     a.links.push(link);
     b.links.push(link);
   });

@@ -30,12 +30,10 @@ const modes: IMode[] = [
   },
 ];
 
-//match (n) return n limit 2
 function FrameQueryContainer({ data }: IProps) {
   const graph = useMemo(() => {
     return processQueryResultsForGraph(data);
   }, [data]);
-
   const showGraphTab = graph.nodes.length > 0;
 
   const [mode, setMode] = useState(showGraphTab ? TabMode.graph : TabMode.json);

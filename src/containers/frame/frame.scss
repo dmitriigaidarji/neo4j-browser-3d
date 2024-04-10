@@ -2,8 +2,9 @@
   cursor: pointer;
   color: blue !important;
   pointer-events: all !important;
+  margin-top: -10px;
 }
 
 .cyphercontainer {
-  max-width: calc(100vw - 450px);
+  padding-right: 50px;
 }
