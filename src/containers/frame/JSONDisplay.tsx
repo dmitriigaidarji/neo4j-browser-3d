@@ -6,7 +6,11 @@ function JSONDisplay({ data }: { data: any }) {
     return { __html: prettyPrintJson.toHtml(data) };
   }, [data]);
 
-  return <pre dangerouslySetInnerHTML={html}></pre>;
+  return (
+    <div className={"scroll-500"}>
+      <pre dangerouslySetInnerHTML={html}></pre>
+    </div>
+  );
 }
 
 export default JSONDisplay;
