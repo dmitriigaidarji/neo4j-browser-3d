@@ -18,9 +18,9 @@ function GraphSidePanel({ item }: IProps) {
   const flipOpen = useCallback(() => {
     setOpen((t) => !t);
   }, []);
-
+  const itemIsNode = isNode(item);
   const info: IInfo = useMemo(() => {
-    if (isNode(item)) {
+    if (itemIsNode) {
       return {
         ...item,
         title: "Node properties",
@@ -35,7 +35,7 @@ function GraphSidePanel({ item }: IProps) {
         labels: [item.type],
       };
     }
-  }, [item]);
+  }, [item, itemIsNode]);
 
   return (
     <div className={`sidepanel`}>
@@ -55,6 +55,11 @@ function GraphSidePanel({ item }: IProps) {
                 ))}
               </div>
             )}
+            {/*{itemIsNode && (*/}
+            {/*  <div>*/}
+            {/*    <GraphRelatedNodes item={item as INode} />*/}
+            {/*  </div>*/}
+            {/*)}*/}
             <div className="table-wrapper">
               <table className="table is-fullwidth">
                 <tbody>

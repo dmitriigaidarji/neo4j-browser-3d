@@ -239,17 +239,25 @@ function crossLink(graph: IGraph): IGraph {
     n.neighbors = [];
     n.links = [];
   });
+
   // cross-link node objects
-  graph.links.forEach((link) => {
-    const a = graph.nodes.find((t) => t.elementId === link.startNodeElementId)!;
-    const b = graph.nodes.find((t) => t.elementId === link.endNodeElementId)!;
+  let i = 0;
+  while (i < graph.links.length) {
+    const link = graph.links[i];
+    const a = graph.nodes.find((t) => t.elementId === link.startNodeElementId);
+    const b = graph.nodes.find((t) => t.elementId === link.endNodeElementId);
+    if (a && b) {
+      a.neighbors.push(b);
+      b.neighbors.push(a);
 
-    a.neighbors.push(b);
-    b.neighbors.push(a);
+      a.links.push(link);
+      b.links.push(link);
 
-    a.links.push(link);
-    b.links.push(link);
-  });
+      i++;
+    } else {
+      graph.links.splice(i, 1);
+    }
+  }
   return graph;
 }
 function postProcessGraph(graph: IGraph): IGraph {
