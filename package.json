@@ -1,7 +1,8 @@
 {
   "name": "neo4j-browser-3d",
-  "version": "0.1.0",
-  "private": true,
+  "version": "1.0",
+  "author": "Dmitrii Gaidarji",
+  "private": false,
   "dependencies": {
     "@neo4j-cypher/react-codemirror": "^1.0.3",
     "@testing-library/jest-dom": "^5.17.0",
