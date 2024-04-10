@@ -2,18 +2,28 @@ import FrameContainer from "../frame/FrameContainer";
 import "./tabs.scss";
 import { useContext } from "react";
 import { QueryContext } from "../../providers/QueryProvider";
+import FrameCypherEditor from "../frame/FrameCypherEditor";
 
 function QueryTabsContainer() {
-  const { currentQuery, addQuery } = useContext(QueryContext);
+  const {
+    current: { queries, addQuery: addQueryFrame, onQueryDelete },
+    history: { addQuery },
+  } = useContext(QueryContext);
 
   return (
-    <div className={"MainView"}>
+    <div>
       <div className={"box block"}>
-        <FrameContainer
-          defaultQuery={currentQuery?.query}
-          cacheQuery={addQuery}
-        />
+        <FrameCypherEditor onSubmit={addQueryFrame} />
       </div>
+      {queries.map((t) => (
+        <div key={t.id} className={"box block"}>
+          <FrameContainer
+            query={t}
+            cacheQuery={addQuery}
+            onClose={onQueryDelete}
+          />
+        </div>
+      ))}
     </div>
   );
 }

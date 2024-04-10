@@ -1,22 +1,24 @@
-import { CypherEditor } from "@neo4j-cypher/react-codemirror";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { SessionContext } from "../../providers/SessionProvider";
 import FrameQueryContainer from "./FrameQueryContainer";
 import "./frame.scss";
 import { RecordShape } from "neo4j-driver";
 import "@neo4j-cypher/codemirror/css/cypher-codemirror.css";
+import FrameCypherEditor from "./FrameCypherEditor";
+import { IQueryContextInfo, ISavedQuery } from "../../providers/QueryProvider";
 
 export type IFrameQueryResult = RecordShape<PropertyKey, any>;
 function FrameContainer({
-  defaultQuery,
+  query: defaultQuery,
   cacheQuery,
+  onClose,
 }: {
-  defaultQuery?: string;
-  cacheQuery: (query: string) => void;
+  query: ISavedQuery;
+  cacheQuery: IQueryContextInfo["addQuery"];
+  onClose: IQueryContextInfo["onQueryDelete"];
 }) {
-  const { schema, getSession } = useContext(SessionContext);
+  const { getSession } = useContext(SessionContext);
   const [loading, setLoading] = useState(false);
-  const [value, setValue] = React.useState("");
   const [data, setData] = React.useState<IFrameQueryResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,6 +33,7 @@ function FrameContainer({
         .then((r) => {
           setData(r);
           cacheQuery(query);
+          defaultQuery.query = query;
           return r;
         })
         .catch((e) => {
@@ -43,30 +46,25 @@ function FrameContainer({
 
       setLoading(false);
     },
-    [getSession, cacheQuery],
+    [getSession, cacheQuery, defaultQuery],
   );
 
-  const handleSubmit = useCallback(async () => {
-    handleFetchData(value);
-  }, [handleFetchData, value]);
-
   useEffect(() => {
-    setValue("");
     setData(null);
-    setValue(defaultQuery ?? "");
-  }, [defaultQuery]);
+    if (defaultQuery) {
+      handleFetchData(defaultQuery.query);
+    }
+  }, [defaultQuery, handleFetchData]);
 
+  const handleClose = useCallback(() => {
+    onClose(defaultQuery);
+  }, [onClose, defaultQuery]);
   return (
     <div>
-      <div className="control has-icons-right is-bordered block cyphercontainer">
-        <span
-          className="icon is-medium is-right play-button"
-          onClick={handleSubmit}
-        >
-          <i className="fas fa-play"></i>
-        </span>
-        <CypherEditor value={value} schema={schema} onValueChanged={setValue} />
-      </div>
+      <FrameCypherEditor
+        onSubmit={handleFetchData}
+        defaultValue={defaultQuery.query}
+      />
       {loading && (
         <div className={"field block"}>
           <progress className="progress is-small is-primary" max="100">
@@ -77,7 +75,7 @@ function FrameContainer({
       {error ? (
         <div className={"field block"}>{JSON.stringify(error)}</div>
       ) : (
-        data && <FrameQueryContainer data={data} />
+        data && <FrameQueryContainer data={data} onClose={handleClose} />
       )}
     </div>
   );

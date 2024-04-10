@@ -12,7 +12,7 @@ export interface ISavedQuery {
   id: string;
   query: string;
 }
-function createSavedQuery(query = ""): ISavedQuery {
+function createSavedQuery(query: string): ISavedQuery {
   return {
     id: uuidv4(),
     query,
@@ -29,30 +29,36 @@ function getDataFromCache(): ISavedQuery[] {
       return parsed;
     }
   }
-  return [createSavedQuery()];
+  return [];
 }
-export interface IQueryContext {
+export interface IQueryContextInfo {
   queries: ISavedQuery[];
   onQueryDelete: (query: ISavedQuery) => void;
-  onQueryPlay: (query: ISavedQuery) => void;
   addQuery: (query: string) => void;
-  currentQuery: ISavedQuery | null;
+}
+export interface IQueryContext {
+  history: IQueryContextInfo & {
+    onQueryPlay: (query: ISavedQuery) => void;
+  };
+  current: IQueryContextInfo;
 }
 export const QueryContext = createContext<IQueryContext>({
-  queries: getDataFromCache(),
-  onQueryDelete: () => {},
-  onQueryPlay: () => {},
-  addQuery: () => {},
-  currentQuery: null,
+  history: {
+    queries: getDataFromCache(),
+    onQueryDelete: () => {},
+    onQueryPlay: () => {},
+    addQuery: () => {},
+  },
+  current: {
+    queries: [],
+    onQueryDelete: () => {},
+    addQuery: () => {},
+  },
 });
-const QueryProvider: FC<PropsWithChildren> = ({ children }) => {
-  const [queries, setQueries] = useState<ISavedQuery[]>(getDataFromCache());
-  const [currentQuery, setCurrentQuery] = useState<ISavedQuery | null>(null);
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(queries));
-  }, [queries]);
 
-  const addQuery: IQueryContext["addQuery"] = useCallback((query) => {
+function useQueries(defaultValues: ISavedQuery[]) {
+  const [queries, setQueries] = useState<ISavedQuery[]>(defaultValues);
+  const addQuery = useCallback((query: string) => {
     setQueries((old) => {
       const i = old.findIndex((t) => t.query === query);
       if (i !== -1) {
@@ -63,9 +69,6 @@ const QueryProvider: FC<PropsWithChildren> = ({ children }) => {
         return copied;
       }
     });
-  }, []);
-  const onQueryPlay = useCallback((q: ISavedQuery) => {
-    setCurrentQuery(q);
   }, []);
   const onQueryDelete = useCallback((q: ISavedQuery) => {
     setQueries((old) => {
@@ -79,16 +82,37 @@ const QueryProvider: FC<PropsWithChildren> = ({ children }) => {
       }
     });
   }, []);
+  return {
+    queries,
+    onQueryDelete,
+    addQuery,
+  };
+}
+
+const QueryProvider: FC<PropsWithChildren> = ({ children }) => {
+  const history = useQueries(getDataFromCache());
+  const current = useQueries([]);
+
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(history.queries.slice(0, 20)));
+  }, [history.queries]);
+
+  const onHistoryQueryPlay = useCallback(
+    (q: ISavedQuery) => {
+      current.addQuery(q.query);
+    },
+    [current],
+  );
 
   const value: IQueryContext = useMemo(
     () => ({
-      queries,
-      onQueryDelete,
-      onQueryPlay,
-      currentQuery,
-      addQuery,
+      history: {
+        ...history,
+        onQueryPlay: onHistoryQueryPlay,
+      },
+      current,
     }),
-    [queries, onQueryDelete, onQueryPlay, currentQuery, addQuery],
+    [history, current, onHistoryQueryPlay],
   );
   return (
     <QueryContext.Provider value={value}>{children}</QueryContext.Provider>

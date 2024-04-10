@@ -12,8 +12,8 @@ const LeftPanel: React.FC = () => {
       }
     >
       <DatabaseContainer />
-      <SchemaInfoContainer />
       <SavedQueriesContainer />
+      <SchemaInfoContainer />
       <ConnectionStatusSidepanel />
     </div>
   );

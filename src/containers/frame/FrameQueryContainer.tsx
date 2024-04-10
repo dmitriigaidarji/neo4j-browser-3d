@@ -6,11 +6,13 @@ import GraphProcessedContainer from "../graph/GraphProcessedContainer";
 
 interface IProps {
   data: IFrameQueryResult[];
+  onClose: () => void;
 }
 
 enum TabMode {
   json,
   graph,
+  close,
 }
 interface IMode {
   value: TabMode;
@@ -22,6 +24,11 @@ const graphMode: IMode = {
   text: "Graph",
   icon: "diagram-project",
 };
+const closeMode: IMode = {
+  value: TabMode.close,
+  text: "Close",
+  icon: "close",
+};
 const modes: IMode[] = [
   {
     value: TabMode.json,
@@ -30,7 +37,7 @@ const modes: IMode[] = [
   },
 ];
 
-function FrameQueryContainer({ data }: IProps) {
+function FrameQueryContainer({ data, onClose }: IProps) {
   const graph = useMemo(() => {
     return processQueryResultsForGraph(data);
   }, [data]);
@@ -73,6 +80,12 @@ function FrameQueryContainer({ data }: IProps) {
               key={item.value}
             />
           ))}
+          <Tab
+            item={closeMode}
+            selected={mode}
+            onClick={onClose}
+            key={closeMode.value}
+          />
         </ul>
       </div>
       {node}

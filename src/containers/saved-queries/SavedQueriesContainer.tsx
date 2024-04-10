@@ -3,7 +3,9 @@ import "./queries.scss";
 import { IQueryContext, QueryContext } from "../../providers/QueryProvider";
 
 function SavedQueriesContainer() {
-  const { queries, onQueryPlay, onQueryDelete } = useContext(QueryContext);
+  const {
+    history: { queries, onQueryPlay, onQueryDelete },
+  } = useContext(QueryContext);
   if (queries.length === 0) {
     return null;
   }
@@ -25,9 +27,9 @@ function SavedQueriesContainer() {
 }
 
 const SavedQueryItem: FC<{
-  item: IQueryContext["queries"][0];
-  onDelete: IQueryContext["onQueryDelete"];
-  onClick: IQueryContext["onQueryPlay"];
+  item: IQueryContext["history"]["queries"][0];
+  onDelete: IQueryContext["history"]["onQueryDelete"];
+  onClick: IQueryContext["history"]["onQueryPlay"];
 }> = ({ item, onDelete, onClick }) => {
   return (
     <div className={"block has-text-primary-20-invert"}>
