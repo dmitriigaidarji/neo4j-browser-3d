@@ -50,7 +50,7 @@ export function createGraph({
     .nodeThreeObjectExtend(true)
     .onNodeClick((node: any) => {
       // Aim at node from outside it
-      const distance = 60;
+      const distance = 60 + (node.val ?? 0);
       const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
 
       const newPos =
@@ -67,6 +67,7 @@ export function createGraph({
         node, // lookAt ({ x, y, z })
         2000, // ms transition duration
       );
+      console.log(node);
       onSelect(node);
     })
     .onLinkClick((link: any) => {
@@ -105,7 +106,7 @@ export function createGraph({
       updateHighlight();
     });
 
-  graph.d3Force("charge")?.strength(-200);
+  graph.d3Force("charge")?.strength(-120);
   function updateHighlight() {
     // trigger update of highlighted objects in scene
     graph

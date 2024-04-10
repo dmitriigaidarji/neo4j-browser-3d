@@ -7,11 +7,12 @@ export enum CachedKey {
   showLinkValues = "showLinkValues",
   doAnimation = "doAnimation",
   fetchLinksInBetween = "fetchLinksInBetween",
+  dagMode = "dagMode",
 }
 export function getCachedKey(key: CachedKey) {
   return "ui-" + key;
 }
-function useCachedValue<T extends boolean | number | string>(
+function useCachedValue<T extends boolean | number | string | undefined>(
   key: CachedKey,
   defaultValue: T,
 ): [T, Dispatch<SetStateAction<T>>] {
