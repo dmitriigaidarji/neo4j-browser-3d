@@ -87,6 +87,8 @@ function setGraphIcons({
           properties.ntid ??
           properties.name ??
           properties.title ??
+          properties.application_name ??
+          properties.team_name ??
           properties.batch_id ??
           properties.material_id ??
           properties.site_id ??
