@@ -132,7 +132,13 @@ export function applyLinkValuesToGraph(graph: IGraph, enable: boolean): IGraph {
         if (rawvalue && typeof rawvalue === "number") {
           let value = rawvalue;
           if (link.properties.buom) {
-            const buom = link.properties.buom as "GM" | "MG" | "ML" | "TB";
+            const buom = link.properties.buom as
+              | "GM"
+              | "MG"
+              | "ML"
+              | "TB"
+              | "EA"
+              | "LB";
 
             switch (buom) {
               case "GM":
@@ -142,6 +148,12 @@ export function applyLinkValuesToGraph(graph: IGraph, enable: boolean): IGraph {
                 break;
               case "MG":
                 value /= 1000 * 1000;
+                break;
+              case "EA":
+                value = 0;
+                break;
+              case "LB":
+                value *= 0.453592;
                 break;
               default:
                 value = rawvalue;

@@ -13,6 +13,7 @@ import { EditorSupportSchema } from "@neo4j-cypher/editor-support";
 import { neo4jSchema } from "./hepers/schema";
 import useValueChangedFlag from "../hooks/useValueChangedFlag";
 import useForceUpdate from "../hooks/useForceUpdate";
+import { uniq } from "lodash-es";
 
 interface ISessionContext {
   driver: Driver;
@@ -90,6 +91,7 @@ function SessionProvider({
     session
       .run(`SHOW DATABASES yield name;`)
       .then((r) => r.records.map((t) => t.get("name")))
+      .then(uniq)
       .then(setDatabases);
   }, [getSession]);
   return (
