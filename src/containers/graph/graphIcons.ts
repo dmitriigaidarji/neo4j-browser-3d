@@ -86,6 +86,8 @@ function setGraphIcons({
         titleContainer.textContent =
           properties.ntid ??
           properties.name ??
+          properties.team_name ??
+          properties.application_name ??
           properties.title ??
           properties.application_name ??
           properties.team_name ??

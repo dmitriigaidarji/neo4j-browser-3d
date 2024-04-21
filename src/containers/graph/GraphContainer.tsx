@@ -94,8 +94,8 @@ function GraphContainer({
     if (graphDomRef.current) {
       graphInstance(graphDomRef.current);
       const bloomPass = new UnrealBloomPass();
-      bloomPass.strength = 0.8;
-      bloomPass.radius = 1;
+      bloomPass.strength = 0.5;
+      bloomPass.radius = 0.5;
       bloomPass.threshold = 0;
       graphInstance.postProcessingComposer().addPass(bloomPass);
     }
