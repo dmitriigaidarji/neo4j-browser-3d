@@ -76,5 +76,19 @@
       border-radius: 50%;
       cursor: pointer;
     }
+
+    .GraphRelatedLinksList {
+      margin: 10px 0;
+      padding: 10px 20px;
+      background: var(--bulma-body-background-color);
+      max-height: 300px;
+      overflow-y: auto;
+      ul {
+        list-style: initial;
+      }
+      .tag {
+        margin: 5px;
+      }
+    }
   }
 }

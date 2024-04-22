@@ -230,7 +230,7 @@ function applyColors(graph: IGraph): IGraph {
     for (let i = 0; i < colorScheme.length; i++) {
       colors[i] = colorScheme[i];
     }
-    labels.forEach((t, index) => {
+    labels.forEach((t) => {
       const i = getRandomInt(0, colors.length - 1);
       const val = colors.splice(i, 1);
       colorMap[t] = val[0];

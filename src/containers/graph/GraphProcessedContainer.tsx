@@ -4,13 +4,34 @@ import {
   fetchRelationshipsBetweenNodesOfAGraph,
   IGraph,
 } from "./helpers";
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { SessionContext } from "../../providers/SessionProvider";
 import { cloneDeep } from "lodash-es";
 import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
 
+export interface IGraphContext {
+  graph: IGraph;
+  setGraph: Dispatch<SetStateAction<IGraph>>;
+}
+export const GraphContext = createContext<IGraphContext>({
+  graph: {
+    nodes: [],
+    links: [],
+  },
+  setGraph: () => {},
+});
 function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
   const [graph, setGraph] = useState<IGraph>({ nodes: [], links: [] });
+
   const { getSession } = useContext(SessionContext);
   const [fetchLinksInBetween, setFetchLinksInBetween] = useCachedValue(
     CachedKey.fetchLinksInBetween,
@@ -47,26 +68,37 @@ function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
   const flipFetchLinksInBetween = useCallback(() => {
     setFetchLinksInBetween((t) => !t);
   }, [setFetchLinksInBetween]);
+
+  const contextValue: IGraphContext = useMemo(
+    () => ({
+      graph,
+      setGraph,
+    }),
+    [graph],
+  );
+
   if (graph.nodes.length === 0) {
     return null;
   }
   return (
-    <GraphContainer
-      graph={graph}
-      rerenderGraph={rerenderGraph}
-      buttonsNode={
-        <>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={fetchLinksInBetween}
-              onChange={flipFetchLinksInBetween}
-            />
-            Fetch links in between all nodes
-          </label>
-        </>
-      }
-    />
+    <GraphContext.Provider value={contextValue}>
+      <GraphContainer
+        graph={graph}
+        rerenderGraph={rerenderGraph}
+        buttonsNode={
+          <>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={fetchLinksInBetween}
+                onChange={flipFetchLinksInBetween}
+              />
+              Fetch links in between all nodes
+            </label>
+          </>
+        }
+      />
+    </GraphContext.Provider>
   );
 }
 

@@ -1,6 +1,7 @@
 import { ILink, INode } from "./helpers";
 import React, { useCallback, useMemo, useState } from "react";
 import { Duration } from "neo4j-driver";
+import GraphRelatedNodes from "../relatednodes/GraphRelatedNodes";
 
 interface IProps {
   item: INode | ILink;
@@ -55,12 +56,13 @@ function GraphSidePanel({ item }: IProps) {
                 ))}
               </div>
             )}
-            {/*{itemIsNode && (*/}
-            {/*  <div>*/}
-            {/*    <GraphRelatedNodes item={item as INode} />*/}
-            {/*  </div>*/}
-            {/*)}*/}
+
             <div className="table-wrapper">
+              {itemIsNode && (
+                <div>
+                  <GraphRelatedNodes item={item as INode} />
+                </div>
+              )}
               <table className="table is-fullwidth">
                 <tbody>
                   <tr>
@@ -130,6 +132,9 @@ function parseValue(value: any) {
       ).toString();
     }
     return JSON.stringify(value).split(",").join(", ");
+  }
+  if (value.toString) {
+    return value.toString();
   }
   return value;
 }
