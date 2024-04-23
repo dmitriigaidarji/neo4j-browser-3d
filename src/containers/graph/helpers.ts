@@ -3,6 +3,7 @@ import { cloneDeep, max, uniq, uniqBy } from "lodash-es";
 import { Session } from "neo4j-driver";
 import config from "../../config/graph-config.json";
 import { interpolateRainbow } from "d3-scale-chromatic";
+import { IGraphContext } from "./GraphProcessedContainer";
 const colorScheme = [
   "#3eb017",
   "#fd8720",
@@ -323,6 +324,83 @@ export function fetchRelationshipsBetweenNodesOfAGraph({
       });
   }
   return Promise.resolve(graph);
+}
+
+export function removeNodeFromGraph({
+  graph,
+  nodeId,
+}: {
+  graph: IGraph;
+  nodeId: string;
+}): IGraph {
+  const cloned = cloneDeep(graph);
+  cloned.nodes = cloned.nodes.filter((t) => t.elementId !== nodeId);
+  return postProcessGraph(cloned);
+}
+export async function fetchNeighbours({
+  session,
+  link,
+  targetNodes,
+  sourceNode,
+  graph,
+  fetchLinksInBetween,
+}: Parameters<IGraphContext["addItemsToGraph"]>[0] & {
+  session: Session;
+  graph: IGraph;
+  fetchLinksInBetween: boolean;
+}): Promise<IGraph> {
+  const cloned = cloneDeep(graph);
+
+  const toDelete = targetNodes.filter((t) => t.checked).map((t) => t.id);
+  const toAdd = targetNodes.filter((t) => !t.checked).map((t) => t.id);
+
+  if (toDelete.length > 0) {
+    cloned.nodes = cloned.nodes.filter((t) => !toDelete.includes(t.elementId));
+  }
+
+  if (toAdd.length > 0) {
+    const items = await session
+      .run(
+        `
+    MATCH p=(n)${link.outgoing ? "" : "<"}-[l:${link.type}]-${link.outgoing ? ">" : ""}(m)
+    where elementId(n)=$elementId
+    and elementId(m) in $nodeIds
+    return distinct l, m
+  `,
+        {
+          elementId: sourceNode,
+          nodeIds: toAdd,
+        },
+      )
+      .then((r) =>
+        r.records.map((t) => t.toObject() as { l: ILink; m: INode }),
+      );
+
+    items.forEach(({ l: link, m: node }) => {
+      if (
+        cloned.links.find((t) => t.elementId === link.elementId) === undefined
+      ) {
+        cloned.links.push(link);
+      }
+
+      if (
+        cloned.nodes.find((t) => t.elementId === node.elementId) === undefined
+      ) {
+        cloned.nodes.push(node);
+      }
+    });
+  }
+
+  return Promise.resolve(postProcessGraph(cloned)).then((g) => {
+    if (fetchLinksInBetween) {
+      return fetchRelationshipsBetweenNodesOfAGraph({
+        graph: g,
+        session,
+      });
+    } else {
+      return g;
+    }
+  });
 }
 
 export function processQueryResultsForGraph(data: IFrameQueryResult[]) {

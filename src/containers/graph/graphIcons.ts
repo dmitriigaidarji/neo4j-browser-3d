@@ -96,6 +96,7 @@ function setGraphIcons({
           properties.site_id ??
           properties.vendor_name ??
           properties.customer_name ??
+          properties.project_name ??
           "";
 
         textContainer.style.color = (node as unknown as any).color ?? "";

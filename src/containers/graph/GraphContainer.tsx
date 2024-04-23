@@ -19,6 +19,7 @@ import setGraphLinkTexts from "./graphLinkTexts";
 import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
 import useDagModeSelector from "./useDagModeSelector";
 import graphDagMode from "./graphDagMode";
+import { isNode } from "neo4j-driver";
 
 function GraphContainer({
   graph,
@@ -31,6 +32,7 @@ function GraphContainer({
 }) {
   const graphDomRef = useRef<HTMLDivElement>(null);
   const [selectedItem, setSelectedItem] = useState<INode | ILink | null>(null);
+
   const [highlight] = useState<{
     nodes: Set<any>;
     links: Set<any>;
@@ -145,6 +147,29 @@ function GraphContainer({
   }, [graph, graphInstance]);
 
   useEffect(() => {
+    if (selectedItem && isNode(selectedItem)) {
+      const node = selectedItem as any;
+      const distance = 60 + (node.val ?? 0);
+      const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+
+      const newPos =
+        node.x || node.y || node.z
+          ? {
+              x: node.x * distRatio,
+              y: node.y * distRatio,
+              z: node.z * distRatio,
+            }
+          : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+
+      graphInstance.cameraPosition(
+        newPos, // new position
+        node, // lookAt ({ x, y, z })
+        2000, // ms transition duration
+      );
+    }
+  }, [graphInstance, selectedItem, graph]);
+
+  useEffect(() => {
     graphDagMode({
       graph: graphInstance,
       mode,
@@ -183,6 +208,17 @@ function GraphContainer({
     };
   }, [highlight, graphInstance, showIcons, showNodeTexts, visibleTextDistance]);
 
+  // clear selected item if its no longer available
+  useEffect(() => {
+    if (
+      graph.nodes.find((t) => t.elementId === selectedItem?.elementId) ===
+        undefined &&
+      graph.links.find((t) => t.elementId === selectedItem?.elementId) ===
+        undefined
+    ) {
+      setSelectedItem(null);
+    }
+  }, [graph, selectedItem]);
   return (
     <div
       className={`graph-container ${!expanded ? "" : "is-position-absolute"}`}

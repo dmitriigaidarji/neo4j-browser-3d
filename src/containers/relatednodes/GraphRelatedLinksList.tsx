@@ -28,6 +28,7 @@ const GraphRelatedLinksList: React.FC<{
     <div className={"GraphRelatedLinksList"}>
       {selected ? (
         <div>
+          Type:
           <div
             className={`tag ${selected.outgoing ? "is-info" : "is-warning"}`}
           >

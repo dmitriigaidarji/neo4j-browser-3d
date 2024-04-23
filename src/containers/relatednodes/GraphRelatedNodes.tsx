@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useState } from "react";
 import { INode } from "../graph/helpers";
 import { SessionContext } from "../../providers/SessionProvider";
 import GraphRelatedLinksList from "./GraphRelatedLinksList";
+import { GraphContext } from "../graph/GraphProcessedContainer";
 
 export interface IRelatedLinkOption {
   outgoing: boolean;
@@ -9,7 +10,7 @@ export interface IRelatedLinkOption {
 }
 function GraphRelatedNodes({ item }: { item: INode }) {
   const { getSession } = useContext(SessionContext);
-
+  const { removeNode } = useContext(GraphContext);
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<IRelatedLinkOption[] | undefined>(undefined);
   useEffect(() => {
@@ -56,6 +57,15 @@ function GraphRelatedNodes({ item }: { item: INode }) {
       >
         Show neighbours
       </button>
+      <button
+        className={"button is-danger is-small delete-button"}
+        onClick={useCallback(() => {
+          removeNode(item.elementId);
+        }, [item, removeNode])}
+      >
+        Remove
+      </button>
+
       {data && <GraphRelatedLinksList item={item} links={data} />}
     </div>
   );

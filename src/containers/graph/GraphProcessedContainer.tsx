@@ -1,8 +1,10 @@
 import GraphContainer from "./GraphContainer";
 import {
   applyLinkValuesToGraph,
+  fetchNeighbours,
   fetchRelationshipsBetweenNodesOfAGraph,
   IGraph,
+  removeNodeFromGraph,
 } from "./helpers";
 import React, {
   createContext,
@@ -12,15 +14,24 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { SessionContext } from "../../providers/SessionProvider";
 import { cloneDeep } from "lodash-es";
 import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
+import { IRelatedLinkOption } from "../relatednodes/GraphRelatedNodes";
+import { IRelatedNode } from "../relatednodes/GraphRelatedLink";
 
 export interface IGraphContext {
   graph: IGraph;
   setGraph: Dispatch<SetStateAction<IGraph>>;
+  addItemsToGraph: (param: {
+    targetNodes: IRelatedNode[];
+    sourceNode: string;
+    link: IRelatedLinkOption;
+  }) => void;
+  removeNode: (elementId: string) => void;
 }
 export const GraphContext = createContext<IGraphContext>({
   graph: {
@@ -28,21 +39,56 @@ export const GraphContext = createContext<IGraphContext>({
     links: [],
   },
   setGraph: () => {},
+  addItemsToGraph: (param) => {},
+  removeNode: () => {},
 });
 function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
   const [graph, setGraph] = useState<IGraph>({ nodes: [], links: [] });
+  const graphRef = useRef(graph);
+
+  useEffect(() => {
+    setGraph(initialGraph);
+  }, [initialGraph]);
+  useEffect(() => {
+    graphRef.current = graph;
+  }, [graph, graphRef]);
 
   const { getSession } = useContext(SessionContext);
+
   const [fetchLinksInBetween, setFetchLinksInBetween] = useCachedValue(
     CachedKey.fetchLinksInBetween,
     true as boolean,
   );
+
+  const removeNode: IGraphContext["removeNode"] = useCallback(
+    (elementId) => {
+      setGraph(removeNodeFromGraph({ graph, nodeId: elementId }));
+    },
+    [graph],
+  );
+
+  const addItemsToGraph: IGraphContext["addItemsToGraph"] = useCallback(
+    (props) => {
+      const session = getSession();
+      return fetchNeighbours({ ...props, session, graph, fetchLinksInBetween })
+        .then((newGraph) => {
+          setGraph(newGraph);
+        })
+        .finally(() => {
+          return session.close();
+        });
+    },
+    [getSession, graph, fetchLinksInBetween],
+  );
+
   // fetch extra links between presented nodes, if any
   useEffect(() => {
-    setGraph(initialGraph);
     if (fetchLinksInBetween) {
       const session = getSession();
-      fetchRelationshipsBetweenNodesOfAGraph({ graph: initialGraph, session })
+      fetchRelationshipsBetweenNodesOfAGraph({
+        graph: graphRef.current,
+        session,
+      })
         .then((newGraph) => {
           setGraph(newGraph);
         })
@@ -50,7 +96,7 @@ function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
           session.close();
         });
     }
-  }, [initialGraph, getSession, fetchLinksInBetween]);
+  }, [graphRef, getSession, fetchLinksInBetween]);
 
   const rerenderGraph = useCallback(
     (props?: { [CachedKey.showLinkValues]?: boolean }) => {
@@ -73,8 +119,10 @@ function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
     () => ({
       graph,
       setGraph,
+      addItemsToGraph,
+      removeNode,
     }),
-    [graph],
+    [graph, setGraph, addItemsToGraph, removeNode],
   );
 
   if (graph.nodes.length === 0) {

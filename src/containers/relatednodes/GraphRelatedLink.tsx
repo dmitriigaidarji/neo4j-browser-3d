@@ -1,11 +1,18 @@
 import * as React from "react";
-import { useContext, useEffect, useState } from "react";
+import {
+  FC,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { GraphContext } from "../graph/GraphProcessedContainer";
 import { IRelatedLinkOption } from "./GraphRelatedNodes";
 import { SessionContext } from "../../providers/SessionProvider";
 import { INode } from "../graph/helpers";
 
-interface IRelatedNode {
+export interface IRelatedNode {
   id: string;
   name: string;
   labels: string[];
@@ -17,10 +24,40 @@ const GraphRelatedLink: React.FC<{ link: IRelatedLinkOption; item: INode }> = ({
 }) => {
   const {
     graph: { nodes },
+    addItemsToGraph,
   } = useContext(GraphContext);
   const [data, setData] = useState<IRelatedNode[] | undefined>(undefined);
+
   const [isLoading, setIsLoading] = useState(false);
   const { getSession } = useContext(SessionContext);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleApply = useCallback(() => {
+    if (containerRef.current && data) {
+      const inputs = containerRef.current.querySelectorAll<HTMLInputElement>(
+        "input[name='neighbor-node']",
+      );
+      const modified: IRelatedNode[] = [];
+      inputs.forEach((el) => {
+        const id = el.dataset.id;
+        const checked = el.checked;
+        if (id) {
+          const item = data.find((t) => t.id === id);
+          if (item) {
+            if (item.checked !== checked) {
+              modified.push(item);
+            }
+          }
+        }
+      });
+      addItemsToGraph({
+        sourceNode: item.elementId,
+        link,
+        targetNodes: modified,
+      });
+    }
+  }, [containerRef, data, addItemsToGraph, item, link]);
+
   useEffect(() => {
     const session = getSession();
     setIsLoading(true);
@@ -43,8 +80,10 @@ const GraphRelatedLink: React.FC<{ link: IRelatedLinkOption; item: INode }> = ({
           m.material_id,
           m.site_id,
           m.vendor_name,
-          m.customer_name
-        ) as name`,
+          m.customer_name,
+          m.project_name
+        ) as name
+        limit 300`,
         {
           elementId: item.elementId,
         },
@@ -78,21 +117,44 @@ const GraphRelatedLink: React.FC<{ link: IRelatedLinkOption; item: INode }> = ({
     return null;
   }
   return (
-    <ul>
-      {data.map(({ id, name, labels, checked }) => (
-        <li key={id}>
-          <label className={"checkbox"}>
-            <input type={"checkbox"} defaultChecked={checked} />
-            {labels.map((t) => (
-              <span className={"tag is-primary"} key={t}>
-                {t}
-              </span>
-            ))}
-            {name}
-          </label>
-        </li>
-      ))}
-    </ul>
+    <div ref={containerRef}>
+      <div className={"block"}>
+        <button className={"button is-success is-small"} onClick={handleApply}>
+          Apply changes
+        </button>
+      </div>
+
+      <ul>
+        {data.map((item) => (
+          <GraphRelatedLinkItem key={item.id} item={item} />
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+const GraphRelatedLinkItem: FC<{
+  item: IRelatedNode;
+}> = ({ item }) => {
+  const { labels, id, checked, name } = item;
+
+  return (
+    <li>
+      <label className={"checkbox"}>
+        <input
+          type={"checkbox"}
+          data-id={id}
+          defaultChecked={checked}
+          name={"neighbor-node"}
+        />
+        {labels.map((t) => (
+          <span className={"tag is-primary"} key={t}>
+            {t}
+          </span>
+        ))}
+        {name}
+      </label>
+    </li>
   );
 };
 
