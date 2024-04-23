@@ -59,6 +59,8 @@ function LoginContainer() {
                   <select name={"protocol"}>
                     <option>neo4j://</option>
                     <option>bolt://</option>
+                    <option>neo4j+s://</option>
+                    <option>bolt+s://</option>
                   </select>
                 </span>
               </p>
