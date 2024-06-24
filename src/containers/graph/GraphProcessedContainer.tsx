@@ -83,7 +83,7 @@ function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
 
   // fetch extra links between presented nodes, if any
   useEffect(() => {
-    if (fetchLinksInBetween) {
+    if (fetchLinksInBetween && graph.nodes.length > 0) {
       const session = getSession();
       fetchRelationshipsBetweenNodesOfAGraph({
         graph: graphRef.current,

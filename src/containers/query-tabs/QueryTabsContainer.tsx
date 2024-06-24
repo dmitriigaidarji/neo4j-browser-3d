@@ -11,7 +11,7 @@ function QueryTabsContainer() {
   } = useContext(QueryContext);
 
   return (
-    <div>
+    <div className={"resultContainer"}>
       <div className={"box block"}>
         <FrameCypherEditor onSubmit={addQueryFrame} />
       </div>
