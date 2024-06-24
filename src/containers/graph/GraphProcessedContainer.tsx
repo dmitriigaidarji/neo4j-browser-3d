@@ -83,14 +83,16 @@ function GraphProcessedContainer({ graph: initialGraph }: { graph: IGraph }) {
 
   // fetch extra links between presented nodes, if any
   useEffect(() => {
-    if (fetchLinksInBetween && graph.nodes.length > 0) {
+    if (fetchLinksInBetween && graphRef.current.nodes.length > 0) {
       const session = getSession();
       fetchRelationshipsBetweenNodesOfAGraph({
         graph: graphRef.current,
         session,
       })
         .then((newGraph) => {
-          setGraph(newGraph);
+          if (newGraph.nodes.length > 0) {
+            setGraph(newGraph);
+          }
         })
         .finally(() => {
           session.close();
