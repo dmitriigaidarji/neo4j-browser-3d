@@ -7,7 +7,7 @@ const SchemaInfoContainer: FC = () => {
     <div className={"schemaInfo block"}>
       <div className={"block"}>
         <div className={"title has-text-primary-10-invert"}>Labels</div>
-        <div>
+        <div className={"is-overflow-y-scroll scroll"}>
           {schema.labels?.map((t) => (
             <div className={"tag is-dark"} key={t}>
               {t}
@@ -17,7 +17,7 @@ const SchemaInfoContainer: FC = () => {
       </div>
       <div className={"block"}>
         <div className={"title has-text-primary-10-invert"}>Relationships</div>
-        <div>
+        <div className={"is-overflow-y-scroll scroll"}>
           {schema.relationshipTypes?.map((t) => (
             <div className={"tag is-dark"} key={t}>
               {t}

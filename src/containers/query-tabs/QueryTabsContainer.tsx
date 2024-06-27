@@ -4,19 +4,19 @@ import { useContext } from "react";
 import { QueryContext } from "../../providers/QueryProvider";
 import FrameCypherEditor from "../frame/FrameCypherEditor";
 
-function QueryTabsContainer() {
+function QueryTabsContainer({ leftPanelOpen }: { leftPanelOpen: boolean }) {
   const {
     current: { queries, addQuery: addQueryFrame, onQueryDelete },
     history: { addQuery },
   } = useContext(QueryContext);
 
   return (
-    <div className={"resultContainer"}>
+    <div className={`resultContainer${leftPanelOpen ? "" : " large"}`}>
       <div className={"box block"}>
         <FrameCypherEditor onSubmit={addQueryFrame} />
       </div>
       {queries.map((t) => (
-        <div key={t.id} className={"box block"}>
+        <div key={t.id} className={"box no-shadow"}>
           <FrameContainer
             query={t}
             cacheQuery={addQuery}

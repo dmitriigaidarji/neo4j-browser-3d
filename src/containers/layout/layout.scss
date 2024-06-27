@@ -5,17 +5,5 @@
     vertical-align: top;
     overflow-y: auto;
     white-space: normal;
-
-    &:nth-child(1) {
-      width: 400px;
-      padding: 20px;
-      height: 100vh;
-      overflow-y: auto;
-      position: fixed;
-    }
-    &:nth-child(2) {
-      padding-left: 400px;
-      width: 100%; //calc(100vw - 450px);
-    }
   }
 }

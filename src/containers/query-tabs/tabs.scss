@@ -1,3 +1,15 @@
 .resultContainer {
   min-height: 100vh;
+  padding-left: 400px;
+  width: 100%; //calc(100vw - 450px);
+
+  transition: padding-left 0.4s ease-in-out;
+
+  &.large {
+    padding-left: 70px;
+  }
+
+  .no-shadow {
+    box-shadow: initial;
+  }
 }
