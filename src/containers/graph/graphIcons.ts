@@ -87,16 +87,16 @@ function setGraphIcons({
           properties.ntid ??
           properties.name ??
           properties.team_name ??
-          properties.application_name ??
           properties.title ??
           properties.application_name ??
-          properties.team_name ??
           properties.batch_id ??
           properties.material_id ??
           properties.site_id ??
           properties.vendor_name ??
           properties.customer_name ??
           properties.project_name ??
+          properties.document_id ??
+          Object.values(properties).find((t) => typeof t === "string") ??
           "";
 
         textContainer.style.color = (node as unknown as any).color ?? "";

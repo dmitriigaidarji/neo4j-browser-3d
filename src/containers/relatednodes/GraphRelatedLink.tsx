@@ -72,16 +72,16 @@ const GraphRelatedLink: React.FC<{ link: IRelatedLinkOption; item: INode }> = ({
           m.ntid,
           m.name,
           m.team_name,
-          m.application_name,
           m.title,
           m.application_name,
-          m.team_name,
           m.batch_id,
           m.material_id,
           m.site_id,
           m.vendor_name,
           m.customer_name,
-          m.project_name
+          m.project_name,
+          m.document_id,
+          elementId(m)
         ) as name
         limit 300`,
         {
