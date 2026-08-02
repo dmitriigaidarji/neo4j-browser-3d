@@ -1,0 +1,83 @@
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 24px;
+  background:
+    radial-gradient(
+      1200px 600px at 50% -10%,
+      rgb(76 201 240 / 18%),
+      transparent 60%
+    ),
+    var(--app-surface-2);
+
+  &__card {
+    width: min(440px, 100%);
+    padding: 28px;
+    background: var(--app-surface);
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    box-shadow: var(--app-shadow);
+  }
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  &__logo {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border-radius: 12px;
+    font-size: 20px;
+    color: #05070d;
+    background: linear-gradient(
+      140deg,
+      var(--app-accent),
+      var(--app-accent-strong)
+    );
+  }
+
+  &__title {
+    font-size: 19px;
+    font-weight: 650;
+    line-height: 1.2;
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    color: var(--app-text-dim);
+  }
+
+  &__fields {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  &__error {
+    margin-top: 18px;
+    font-size: 13px;
+    word-break: break-word;
+  }
+
+  &__hint {
+    margin-top: 18px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--app-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}

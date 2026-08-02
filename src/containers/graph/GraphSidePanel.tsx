@@ -1,141 +1,104 @@
-import { ILink, INode } from "./helpers";
-import React, { useCallback, useMemo, useState } from "react";
-import { Duration } from "neo4j-driver";
+import { useMemo } from "react";
+import { isGraphNode, type ILink, type INode } from "../../graph/types";
+import { formatValue } from "../../graph/values";
+import { getNodeCaption, type CaptionOverrides } from "../../graph/captions";
 import GraphRelatedNodes from "../relatednodes/GraphRelatedNodes";
 
-interface IProps {
+export default function GraphSidePanel({
+  item,
+  onClose,
+  captionOverrides,
+}: {
   item: INode | ILink;
-}
+  onClose: () => void;
+  captionOverrides: CaptionOverrides;
+}) {
+  const isNode = isGraphNode(item);
 
-interface IInfo extends Pick<INode, "labels" | "identity" | "elementId"> {
-  title: string;
-  properties: Array<[string, string | number | string[] | { days: number }]>;
-}
-function isNode(item: INode | ILink): item is INode {
-  return (item as INode).labels !== undefined;
-}
-function GraphSidePanel({ item }: IProps) {
-  const [open, setOpen] = useState(item !== null);
-  const flipOpen = useCallback(() => {
-    setOpen((t) => !t);
-  }, []);
-  const itemIsNode = isNode(item);
-  const info: IInfo = useMemo(() => {
-    if (itemIsNode) {
+  const { title, subtitle, chips } = useMemo(() => {
+    if (isNode) {
       return {
-        ...item,
-        title: "Node properties",
-        properties: Object.entries(item.properties),
-        labels: item.labels,
-      };
-    } else {
-      return {
-        ...item,
-        title: "Relationship properties",
-        properties: Object.entries(item.properties),
-        labels: [item.type],
+        title: getNodeCaption(item, captionOverrides),
+        subtitle: "Node",
+        chips: item.labels,
       };
     }
-  }, [item, itemIsNode]);
+    return { title: item.type, subtitle: "Relationship", chips: [item.type] };
+  }, [item, isNode, captionOverrides]);
+
+  const properties = useMemo(
+    () =>
+      Object.entries(item.properties).sort(([a], [b]) => a.localeCompare(b)),
+    [item.properties],
+  );
 
   return (
-    <div className={`sidepanel`}>
-      {open ? (
-        <article className={`message is-info ${open ? "" : "is-hidden"}`}>
-          <div className="message-header">
-            {info.title}
-            <button onClick={flipOpen} className="delete"></button>
-          </div>
-          <div className="message-body">
-            {info.labels && info.labels.length > 0 && (
-              <div className="tags are-medium">
-                {info.labels.map((t) => (
-                  <span className="tag is-dark" key={t}>
-                    {t}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="table-wrapper">
-              {itemIsNode && (
-                <div>
-                  <GraphRelatedNodes item={item as INode} />
-                </div>
-              )}
-              <table className="table is-fullwidth">
-                <tbody>
-                  <tr>
-                    <td>{"<element Id>"}</td>
-                    <td>{info.elementId}</td>
-                  </tr>
-                  <tr>
-                    <td>{"<id>"}</td>
-                    <td>{info.identity}</td>
-                  </tr>
-                  {info.properties.map(([key, value]) => (
-                    <tr key={key}>
-                      <td>{key}</td>
-                      <td>
-                        <div>{parseValue(value)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </article>
-      ) : (
-        <div className="open-container" onClick={flipOpen}>
-          <span className="icon is-medium">
-            <i className="fas fa-chevron-right"></i>
-          </span>
+    <aside className="graph-inspector">
+      <header className="graph-inspector__header">
+        <div className="u-truncate">
+          <p className="graph-inspector__kind u-muted">{subtitle}</p>
+          <h3 className="graph-inspector__title u-truncate" title={title}>
+            {title}
+          </h3>
         </div>
-      )}
-    </div>
+        <button type="button" onClick={onClose} aria-label="Close inspector">
+          <i className="fas fa-xmark" aria-hidden="true" />
+        </button>
+      </header>
+
+      <div className="graph-inspector__body u-scroll-y">
+        <div className="graph-inspector__chips">
+          {chips.map((chip) => (
+            <span
+              className="tag is-dark"
+              key={chip}
+              style={
+                isNode
+                  ? { background: item.color, color: "#05070d" }
+                  : undefined
+              }
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+
+        {/* Keyed so switching inspected node remounts with clean state. */}
+        {isNode && <GraphRelatedNodes key={item.elementId} item={item} />}
+
+        <table className="table is-fullwidth graph-inspector__table">
+          <tbody>
+            <tr>
+              <th scope="row">&lt;elementId&gt;</th>
+              <td>{item.elementId}</td>
+            </tr>
+            <tr>
+              <th scope="row">&lt;id&gt;</th>
+              <td>{item.identity || "—"}</td>
+            </tr>
+            {isNode && (
+              <tr>
+                <th scope="row">&lt;degree&gt;</th>
+                <td>{item.degree}</td>
+              </tr>
+            )}
+            {properties.length === 0 ? (
+              <tr>
+                <td colSpan={2} className="u-muted">
+                  No properties
+                </td>
+              </tr>
+            ) : (
+              properties.map(([key, value]) => (
+                <tr key={key}>
+                  <th scope="row">{key}</th>
+                  <td>{formatValue(value)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </aside>
   );
 }
-const parseDate = (neo4jDateTime: any): Date => {
-  const {
-    year,
-    month,
-    day,
-    hour = 0,
-    minute = 0,
-    second = 0,
-    nanosecond = 0,
-  } = neo4jDateTime;
-  return new Date(
-    year,
-    month - 1, // neo4j dates start at 1, js dates start at 0
-    day,
-    hour,
-    minute,
-    second,
-    nanosecond / 1000000, // js dates use milliseconds
-  );
-};
-function parseValue(value: any) {
-  if (typeof value === "object") {
-    if (["year", "month", "day"].every((key) => value[key] !== undefined)) {
-      return parseDate(value).toLocaleDateString();
-    }
-    if (
-      ["days", "months", "seconds"].every((key) => value[key] !== undefined)
-    ) {
-      return new Duration(
-        value.months,
-        value.days,
-        value.seconds,
-        value.nanoseconds,
-      ).toString();
-    }
-    return JSON.stringify(value).split(",").join(", ");
-  }
-  if (value.toString) {
-    return value.toString();
-  }
-  return value;
-}
-export default GraphSidePanel;

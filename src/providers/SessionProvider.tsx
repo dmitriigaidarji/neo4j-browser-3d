@@ -1,19 +1,17 @@
 import {
   createContext,
-  Dispatch,
-  PropsWithChildren,
-  SetStateAction,
   useCallback,
   useEffect,
   useMemo,
   useState,
+  type Dispatch,
+  type PropsWithChildren,
+  type SetStateAction,
 } from "react";
-import { Driver, Session } from "neo4j-driver";
-import { EditorSupportSchema } from "@neo4j-cypher/editor-support";
-import { neo4jSchema } from "./hepers/schema";
-import useValueChangedFlag from "../hooks/useValueChangedFlag";
-import useForceUpdate from "../hooks/useForceUpdate";
-import { uniq } from "lodash-es";
+import type { Driver, Session } from "neo4j-driver";
+import type { EditorSupportSchema } from "@neo4j-cypher/editor-support";
+import { neo4jSchema } from "./helpers/schema";
+import { fetchSchema } from "../graph/queries";
 
 interface ISessionContext {
   driver: Driver;
@@ -22,82 +20,117 @@ interface ISessionContext {
   databases: string[];
   database: string;
   setDatabase: Dispatch<SetStateAction<string>>;
+  /** Non-fatal problems worth surfacing, e.g. schema introspection denied. */
+  warning: string | null;
 }
 
 export const SessionContext = createContext<ISessionContext>(
-  null as unknown as any,
+  null as unknown as ISessionContext,
 );
+
 function SessionProvider({
   children,
   driver,
   database: defaultDatabase,
-}: PropsWithChildren & { driver: Driver; database: string }) {
+}: PropsWithChildren<{ driver: Driver; database: string }>) {
   const [database, setDatabase] = useState(defaultDatabase);
-  const [databases, setDatabases] = useState([database]);
+  const [databases, setDatabases] = useState<string[]>([defaultDatabase]);
+  const [schema, setSchema] = useState<EditorSupportSchema>(neo4jSchema);
+  const [warning, setWarning] = useState<string | null>(null);
+
   const getSession = useCallback(
     () => driver.session({ database }),
     [database, driver],
   );
-  const isDbSame = useValueChangedFlag(database);
-  const forceUpdate = useForceUpdate();
 
+  // Editor autocompletion data for the selected database.
   useEffect(() => {
-    forceUpdate();
-  }, [isDbSame, forceUpdate]);
-  const [schema, setSchema] = useState<EditorSupportSchema>({});
+    let cancelled = false;
+    const session = driver.session({ database });
 
-  const value: ISessionContext = useMemo(
+    fetchSchema(session)
+      .then((result) => {
+        if (!cancelled) {
+          setSchema({ ...neo4jSchema, ...result });
+          setWarning(null);
+        }
+      })
+      .catch((error: Error) => {
+        // Introspection needs privileges that a read-only user may not have.
+        // Autocompletion degrades, the app keeps working.
+        if (!cancelled) {
+          setSchema(neo4jSchema);
+          setWarning(`Schema unavailable: ${error.message}`);
+        }
+      })
+      .finally(() => {
+        session.close().catch(() => {});
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [driver, database]);
+
+  // `SHOW DATABASES` is unavailable on Community edition and to unprivileged
+  // users; fall back to just the connected database instead of leaving an
+  // unhandled rejection behind.
+  useEffect(() => {
+    let cancelled = false;
+    const session = driver.session({ database });
+
+    session
+      .run("SHOW DATABASES YIELD name")
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+        const names = [
+          ...new Set(
+            result.records.map((record) => record.get("name") as string),
+          ),
+        ].sort();
+        setDatabases(names.length > 0 ? names : [database]);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDatabases([database]);
+        }
+      })
+      .finally(() => {
+        session.close().catch(() => {});
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [driver, database]);
+
+  const value = useMemo<ISessionContext>(
     () => ({
       driver,
       getSession,
       schema,
       databases,
-      setDatabase,
       database,
+      setDatabase,
+      warning,
     }),
-    [driver, database, schema, getSession, databases, setDatabase],
+    [driver, getSession, schema, databases, database, warning],
   );
 
-  useEffect(() => {
-    // fetch schema
-    setSchema({});
-    const session = getSession();
-    session.beginTransaction().then((tx) =>
-      Promise.all([
-        tx.run("call db.labels()"),
-        tx.run("call db.relationshipTypes()"),
-        tx.run("call db.propertyKeys()"),
-      ])
-        .then((response) => {
-          setSchema({
-            ...neo4jSchema,
-            labels: response[0].records.map((t) => t.toObject().label),
-            relationshipTypes: response[1].records.map(
-              (t) => t.toObject().relationshipType,
-            ),
-            propertyKeys: response[2].records.map(
-              (t) => t.toObject().propertyKey,
-            ),
-          });
-        })
-        .finally(() => {
-          session.close();
-        }),
-    );
-  }, [getSession]);
-
-  useEffect(() => {
-    const session = getSession();
-    session
-      .run(`SHOW DATABASES yield name;`)
-      .then((r) => r.records.map((t) => t.get("name")))
-      .then(uniq)
-      .then(setDatabases);
-  }, [getSession]);
   return (
     <SessionContext.Provider value={value}>
-      {isDbSame && children}
+      {/*
+        Remounting on database change replaces the previous hack of a
+        force-update plus a "did the value change" flag, and guarantees no
+        frame keeps a session bound to the old database.
+      */}
+      <div key={database} className="session-root">
+        {children}
+      </div>
     </SessionContext.Provider>
   );
 }
+
 export default SessionProvider;

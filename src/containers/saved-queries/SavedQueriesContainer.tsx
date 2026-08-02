@@ -1,57 +1,76 @@
-import { FC, useCallback, useContext } from "react";
-import "./queries.scss";
-import { IQueryContext, QueryContext } from "../../providers/QueryProvider";
+import { useContext, type FC } from "react";
+import {
+  QueryContext,
+  type IQueryContext,
+  type ISavedQuery,
+} from "../../providers/QueryProvider";
+import PanelSection from "../../components/PanelSection";
 
-function SavedQueriesContainer() {
+const HistoryItem: FC<{
+  item: ISavedQuery;
+  onPlay: (item: ISavedQuery) => void;
+  onDelete: (item: ISavedQuery) => void;
+}> = ({ item, onPlay, onDelete }) => (
+  <li className="history__item">
+    <button
+      type="button"
+      className="history__query"
+      onClick={() => onPlay(item)}
+      title={item.query}
+    >
+      <i className="fas fa-play history__play" aria-hidden="true" />
+      <code>{item.query}</code>
+    </button>
+    <button
+      type="button"
+      className="history__delete"
+      onClick={() => onDelete(item)}
+      aria-label="Remove from history"
+    >
+      <i className="fas fa-xmark" aria-hidden="true" />
+    </button>
+  </li>
+);
+
+export default function SavedQueriesContainer() {
   const {
-    history: { queries, onQueryPlay, onQueryDelete },
-  } = useContext(QueryContext);
-  if (queries.length === 0) {
-    return null;
-  }
+    history: { queries, onQueryPlay, onQueryDelete, clear },
+  }: IQueryContext = useContext(QueryContext);
+
   return (
-    <div className={"SavedQueriesContainer block"}>
-      <div className={"title has-text-primary-10-invert"}>History</div>
-      <div className={"is-overflow-y-scroll scroll"}>
-        {queries.map((t) => (
-          <SavedQueryItem
-            key={t.id}
-            item={t}
-            onDelete={onQueryDelete}
-            onClick={onQueryPlay}
-          />
-        ))}
-      </div>
-    </div>
+    <PanelSection
+      title="History"
+      icon="clock-rotate-left"
+      actions={
+        queries.length > 0 && (
+          <button
+            type="button"
+            className="panel-section__action"
+            onClick={clear}
+            title="Clear history"
+            aria-label="Clear history"
+          >
+            <i className="fas fa-trash-can" aria-hidden="true" />
+          </button>
+        )
+      }
+    >
+      {queries.length === 0 ? (
+        <p className="u-muted is-size-7">
+          Queries you run will be listed here.
+        </p>
+      ) : (
+        <ul className="history u-scroll-y">
+          {queries.map((item) => (
+            <HistoryItem
+              key={item.id}
+              item={item}
+              onPlay={onQueryPlay}
+              onDelete={onQueryDelete}
+            />
+          ))}
+        </ul>
+      )}
+    </PanelSection>
   );
 }
-
-const SavedQueryItem: FC<{
-  item: IQueryContext["history"]["queries"][0];
-  onDelete: IQueryContext["history"]["onQueryDelete"];
-  onClick: IQueryContext["history"]["onQueryPlay"];
-}> = ({ item, onDelete, onClick }) => {
-  return (
-    <div className={"block has-text-primary-20-invert"}>
-      {item.query}{" "}
-      <span
-        className="icon is-medium is-right"
-        onClick={useCallback(() => {
-          onClick(item);
-        }, [onClick, item])}
-      >
-        <i className="fas fa-play"></i>
-      </span>
-      <span
-        className="icon is-medium is-right"
-        onClick={useCallback(() => {
-          onDelete(item);
-        }, [onDelete, item])}
-      >
-        <i className="fas fa-close"></i>
-      </span>
-    </div>
-  );
-};
-
-export default SavedQueriesContainer;

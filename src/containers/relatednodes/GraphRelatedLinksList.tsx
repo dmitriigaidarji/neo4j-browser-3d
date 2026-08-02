@@ -1,67 +1,57 @@
-import * as React from "react";
-import { MouseEventHandler, useCallback, useState } from "react";
-import { IRelatedLinkOption } from "./GraphRelatedNodes";
+import { useState } from "react";
+import type { IRelatedLinkOption } from "../../graph/queries";
+import type { INode } from "../../graph/types";
 import GraphRelatedLink from "./GraphRelatedLink";
-import { INode } from "../graph/helpers";
 
-const GraphRelatedLinksList: React.FC<{
+function patternText({ type, outgoing }: IRelatedLinkOption): string {
+  return outgoing ? `-[${type}]->` : `<-[${type}]-`;
+}
+
+export default function GraphRelatedLinksList({
+  links,
+  item,
+}: {
   links: IRelatedLinkOption[];
   item: INode;
-}> = ({ links, item }) => {
-  const [selected, setSelected] = useState<IRelatedLinkOption | undefined>(
-    undefined,
-  );
+}) {
+  const [selected, setSelected] = useState<IRelatedLinkOption | null>(null);
 
-  const handleClick: MouseEventHandler<HTMLButtonElement> = useCallback(
-    (event) => {
-      const index = event.currentTarget.dataset.index;
-      if (index) {
-        const parsed = parseInt(index, 10);
-        if (!isNaN(parsed)) {
-          setSelected(links[parsed]);
-        }
-      }
-    },
-    [links],
-  );
+  if (selected) {
+    return (
+      <div className="related__panel">
+        <button
+          type="button"
+          className={`related__pattern is-selected ${selected.outgoing ? "is-out" : "is-in"}`}
+          onClick={() => setSelected(null)}
+        >
+          <span>{patternText(selected)}</span>
+          <i className="fas fa-xmark" aria-hidden="true" />
+        </button>
+        {/* Keyed so picking another pattern refetches from a clean mount. */}
+        <GraphRelatedLink
+          key={`${selected.type}-${selected.outgoing}`}
+          link={selected}
+          item={item}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className={"GraphRelatedLinksList"}>
-      {selected ? (
-        <div>
-          Type:
-          <div
-            className={`tag ${selected.outgoing ? "is-info" : "is-warning"}`}
-          >
-            {selected.outgoing
-              ? `-[${selected.type}]->`
-              : `<-[${selected.type}]-`}
+    <div className="related__panel">
+      <ul className="related__patterns">
+        {links.map((link) => (
+          <li key={`${link.type}-${link.outgoing}`}>
             <button
-              className="delete is-small is-warning"
-              data-index={-1}
-              onClick={handleClick}
-            />
-          </div>
-          <GraphRelatedLink link={selected} item={item} />
-        </div>
-      ) : (
-        <ul>
-          {links.map(({ type, outgoing }, index) => {
-            return (
-              <li key={type + outgoing}>
-                <button
-                  className={`tag is-hoverable ${outgoing ? "is-info" : "is-warning"}`}
-                  data-index={index}
-                  onClick={handleClick}
-                >
-                  {outgoing ? `-[${type}]->` : `<-[${type}]-`}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+              type="button"
+              className={`related__pattern ${link.outgoing ? "is-out" : "is-in"}`}
+              onClick={() => setSelected(link)}
+            >
+              {patternText(link)}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
-};
-
-export default GraphRelatedLinksList;
+}
