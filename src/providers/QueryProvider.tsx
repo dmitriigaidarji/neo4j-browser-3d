@@ -1,119 +1,129 @@
 import {
   createContext,
-  FC,
-  PropsWithChildren,
   useCallback,
   useEffect,
   useMemo,
   useState,
+  type FC,
+  type PropsWithChildren,
 } from "react";
-import { v4 as uuidv4 } from "uuid";
+import useCachedValue, { CachedKey } from "../hooks/useCachedValue";
+
 export interface ISavedQuery {
   id: string;
   query: string;
 }
-function createSavedQuery(query: string): ISavedQuery {
-  return {
-    id: uuidv4(),
-    query,
-  };
-}
-const key = "SAVED_QUERIES";
-function getDataFromCache(): ISavedQuery[] {
-  const saved = localStorage.getItem(key);
-  if (saved) {
-    const parsed: ISavedQuery[] = (JSON.parse(saved) as ISavedQuery[]).filter(
-      (t) => t.query.length > 0,
-    );
-    if (parsed.length > 0) {
-      return parsed;
-    }
+
+const HISTORY_LIMIT = 30;
+
+function newId(): string {
+  // `crypto.randomUUID` is available in every browser this app targets, so the
+  // uuid dependency is no longer needed. The fallback covers insecure origins,
+  // where the Web Crypto API is not exposed.
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
   }
-  return [];
+  return `q-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
+
+function createSavedQuery(query: string): ISavedQuery {
+  return { id: newId(), query };
+}
+
 export interface IQueryContextInfo {
   queries: ISavedQuery[];
   onQueryDelete: (query: ISavedQuery) => void;
   addQuery: (query: string) => void;
+  clear: () => void;
 }
+
 export interface IQueryContext {
-  history: IQueryContextInfo & {
-    onQueryPlay: (query: ISavedQuery) => void;
-  };
+  history: IQueryContextInfo & { onQueryPlay: (query: ISavedQuery) => void };
   current: IQueryContextInfo;
 }
+
+const noop = () => {};
+
 export const QueryContext = createContext<IQueryContext>({
   history: {
-    queries: getDataFromCache(),
-    onQueryDelete: () => {},
-    onQueryPlay: () => {},
-    addQuery: () => {},
-  },
-  current: {
     queries: [],
-    onQueryDelete: () => {},
-    addQuery: () => {},
+    onQueryDelete: noop,
+    onQueryPlay: noop,
+    addQuery: noop,
+    clear: noop,
   },
+  current: { queries: [], onQueryDelete: noop, addQuery: noop, clear: noop },
 });
 
-function useQueries(defaultValues: ISavedQuery[]) {
-  const [queries, setQueries] = useState<ISavedQuery[]>(defaultValues);
-  const addQuery = useCallback((query: string) => {
-    setQueries((old) => {
-      const i = old.findIndex((t) => t.query === query);
-      if (i !== -1) {
-        return old;
-      } else {
-        const copied = old.slice();
-        copied.unshift(createSavedQuery(query));
-        return copied;
+function useQueries(
+  initial: ISavedQuery[],
+  { dedupe }: { dedupe: boolean },
+): IQueryContextInfo & { queries: ISavedQuery[] } {
+  const [queries, setQueries] = useState<ISavedQuery[]>(initial);
+
+  const addQuery = useCallback(
+    (query: string) => {
+      const trimmed = query.trim();
+      if (trimmed.length === 0) {
+        return;
       }
-    });
+      setQueries((current) => {
+        if (dedupe) {
+          const existing = current.findIndex(
+            (entry) => entry.query === trimmed,
+          );
+          if (existing !== -1) {
+            // Move the repeat to the top instead of silently doing nothing.
+            const reordered = current.slice();
+            const [entry] = reordered.splice(existing, 1);
+            return [entry, ...reordered];
+          }
+        }
+        return [createSavedQuery(trimmed), ...current];
+      });
+    },
+    [dedupe],
+  );
+
+  const onQueryDelete = useCallback((query: ISavedQuery) => {
+    setQueries((current) => current.filter((entry) => entry.id !== query.id));
   }, []);
-  const onQueryDelete = useCallback((q: ISavedQuery) => {
-    setQueries((old) => {
-      const i = old.findIndex((t) => t === q);
-      if (i === -1) {
-        return old;
-      } else {
-        const copied = old.slice();
-        copied.splice(i, 1);
-        return copied;
-      }
-    });
-  }, []);
-  return {
-    queries,
-    onQueryDelete,
-    addQuery,
-  };
+
+  const clear = useCallback(() => setQueries([]), []);
+
+  return { queries, addQuery, onQueryDelete, clear };
 }
 
 const QueryProvider: FC<PropsWithChildren> = ({ children }) => {
-  const history = useQueries(getDataFromCache());
-  const current = useQueries([]);
+  const [persistedHistory, setPersistedHistory] = useCachedValue<ISavedQuery[]>(
+    CachedKey.history,
+    [],
+  );
+
+  const history = useQueries(
+    persistedHistory.filter((entry) => entry?.query?.length > 0),
+    { dedupe: true },
+  );
+  // Result frames may legitimately repeat the same query side by side.
+  const current = useQueries([], { dedupe: false });
 
   useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(history.queries.slice(0, 20)));
-  }, [history.queries]);
+    setPersistedHistory(history.queries.slice(0, HISTORY_LIMIT));
+  }, [history.queries, setPersistedHistory]);
 
   const onHistoryQueryPlay = useCallback(
-    (q: ISavedQuery) => {
-      current.addQuery(q.query);
-    },
+    (query: ISavedQuery) => current.addQuery(query.query),
     [current],
   );
 
-  const value: IQueryContext = useMemo(
+  const value = useMemo<IQueryContext>(
     () => ({
-      history: {
-        ...history,
-        onQueryPlay: onHistoryQueryPlay,
-      },
+      history: { ...history, onQueryPlay: onHistoryQueryPlay },
       current,
     }),
     [history, current, onHistoryQueryPlay],
   );
+
   return (
     <QueryContext.Provider value={value}>{children}</QueryContext.Provider>
   );

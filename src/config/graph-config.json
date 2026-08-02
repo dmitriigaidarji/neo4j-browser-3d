@@ -1,15 +1,21 @@
 {
-  "nodes": {
-    "Movie": {
-      "color": "red"
-    }
+  "labels": {
+    "Movie": { "color": "#f72585", "caption": "title", "icon": "🎬" },
+    "Person": { "caption": "name", "icon": "🧑" }
   },
   "relationships": {
-    "ACTED_IN": {
-      "value-field": "supplied"
-    },
-    "FEEDS": {
-      "value-field": "portion_qty"
+    "ACTED_IN": { "valueField": "supplied" },
+    "FEEDS": { "valueField": "portion_qty" }
+  },
+  "value": {
+    "unitField": "buom",
+    "unitFactors": {
+      "GM": 0.001,
+      "MG": 0.000001,
+      "ML": 0.001,
+      "TB": 0.001,
+      "LB": 0.453592,
+      "EA": 0
     }
   }
 }

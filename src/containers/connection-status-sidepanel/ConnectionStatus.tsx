@@ -1,71 +1,54 @@
-import "./status.scss";
-import React, { useContext } from "react";
+import { useContext } from "react";
 import { AuthContext } from "../../providers/AuthProvider";
 import { SessionContext } from "../../providers/SessionProvider";
-function ConnectionStatusSidepanel() {
-  const { disconnect, serverInfo: info } = useContext(AuthContext);
+import PanelSection from "../../components/PanelSection";
+
+export default function ConnectionStatus() {
+  const { disconnect, serverInfo } = useContext(AuthContext);
   const { database } = useContext(SessionContext);
+
+  if (!serverInfo) {
+    return (
+      <PanelSection title="Connection" icon="plug-circle-xmark">
+        <p className="has-text-danger is-size-7">
+          <i className="fas fa-signal" aria-hidden="true" /> Disconnected
+        </p>
+      </PanelSection>
+    );
+  }
+
+  const rows: Array<[string, string]> = [
+    ["Address", serverInfo.address ?? "—"],
+    ["Protocol", String(serverInfo.protocolVersion ?? "—")],
+    ["Agent", serverInfo.agent ?? "—"],
+    ["Database", database],
+    ["User", serverInfo.username || "—"],
+  ];
+
   return (
-    <div className={"ConnectionStatusSidepanel"}>
-      {info ? (
-        <div>
-          <div className={"title has-text-primary-10-invert"}>
-            Connection Status
+    <PanelSection
+      title="Connection"
+      icon="plug-circle-check"
+      defaultOpen={false}
+    >
+      <dl className="connection">
+        {rows.map(([label, value]) => (
+          <div className="connection__row" key={label}>
+            <dt>{label}</dt>
+            <dd className="u-truncate" title={value}>
+              {value}
+            </dd>
           </div>
-
-          <div className="fixed-grid">
-            <div className="grid">
-              <div className="cell">URL</div>
-              <div className="cell">
-                <span className="tag is-dark">{info.address}</span>
-              </div>
-
-              <div className="cell">
-                <span>Protocol</span>
-              </div>
-              <div className="cell">
-                <span className="tag is-dark">{info.protocolVersion}</span>
-              </div>
-              <div className="cell">
-                <span>Agent</span>
-              </div>
-              <div className="cell">
-                <span className="tag is-dark">{info.agent}</span>
-              </div>
-              <div className="cell">
-                <span>Database</span>
-              </div>
-              <div className="cell">
-                <span className="tag is-dark">{database}</span>
-              </div>
-              <div className="cell">
-                <span>User</span>
-              </div>
-              <div className="cell">
-                <span className="tag is-dark">{info.username}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className={"block"}>
-            <button
-              className="button is-primary is-small disconnect"
-              onClick={disconnect}
-            >
-              Disconnect
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <span className="icon is-left has-text-danger">
-            <i className="fas fa-signal"></i>
-          </span>
-          <span>Disconnected</span>
-        </div>
-      )}
-    </div>
+        ))}
+      </dl>
+      <button
+        type="button"
+        className="button is-small is-danger is-light is-fullwidth"
+        onClick={disconnect}
+      >
+        <i className="fas fa-right-from-bracket" aria-hidden="true" />
+        <span>Disconnect</span>
+      </button>
+    </PanelSection>
   );
 }
-
-export default ConnectionStatusSidepanel;

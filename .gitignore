@@ -8,11 +8,16 @@
 # testing
 /coverage
 
-# production
+# build output
+/dist
 /build
+*.tsbuildinfo
 
-# misc
+# editors
 .DS_Store
+.vscode
+
+# local env
 .env.local
 .env.development.local
 .env.test.local

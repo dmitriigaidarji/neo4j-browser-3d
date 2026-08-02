@@ -1,328 +1,364 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { IGraph, ILink, INode } from "./helpers";
-import { cloneDeep } from "lodash-es";
-// @ts-ignore
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-// @ts-ignore
-import { Vector3 } from "three";
-import "./graph.scss";
-import { createGraph } from "./graph";
-import GraphSidePanel from "./GraphSidePanel";
-import setGraphIcons from "./graphIcons";
-import setGraphLinkTexts from "./graphLinkTexts";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  GraphRenderer,
+  type DagMode,
+  type GraphSettings,
+} from "../../graph/renderer";
+import type { CaptionOverrides } from "../../graph/captions";
+import {
+  isGraphNode,
+  type IGraph,
+  type ILink,
+  type INode,
+  type NodeSizeMode,
+} from "../../graph/types";
+import {
+  exportCanvasAsPng,
+  exportGraphAsCsv,
+  exportGraphAsJson,
+} from "../../graph/exporters";
 import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
-import useDagModeSelector from "./useDagModeSelector";
-import graphDagMode from "./graphDagMode";
-import { isNode } from "neo4j-driver";
+import GraphToolbar from "./GraphToolbar";
+import GraphLegend from "./GraphLegend";
+import GraphSearch from "./GraphSearch";
+import GraphSidePanel from "./GraphSidePanel";
 
-function GraphContainer({
+const HEADER_ALLOWANCE = 56;
+const MIN_HEIGHT = 560;
+
+export default function GraphContainer({
   graph,
-  rerenderGraph,
-  buttonsNode,
+  sizeMode,
+  onSizeModeChange,
+  fetchLinksInBetween,
+  onFetchLinksInBetweenChange,
+  error,
+  onDismissError,
 }: {
   graph: IGraph;
-  rerenderGraph: (props?: { [CachedKey.showLinkValues]?: boolean }) => void;
-  buttonsNode: React.ReactNode;
+  sizeMode: NodeSizeMode;
+  onSizeModeChange: (mode: NodeSizeMode) => void;
+  fetchLinksInBetween: boolean;
+  onFetchLinksInBetweenChange: (value: boolean) => void;
+  error: string | null;
+  onDismissError: () => void;
 }) {
-  const graphDomRef = useRef<HTMLDivElement>(null);
-  const [selectedItem, setSelectedItem] = useState<INode | ILink | null>(null);
-
-  const [highlight] = useState<{
-    nodes: Set<any>;
-    links: Set<any>;
-    node: object | null;
-  }>({
-    nodes: new Set(),
-    links: new Set(),
-    node: null,
-  });
-  const [showIcons, setShowIcons] = useCachedValue(
-    CachedKey.showIcons,
-    true as boolean,
-  );
-  const [showNodeTexts, setShowNodeTexts] = useCachedValue(
-    CachedKey.showNodeTexts,
-    true as boolean,
-  );
-  const [showLinkTexts, setShowLinkTexts] = useCachedValue(
-    CachedKey.showLinkTexts,
-    true as boolean,
-  );
-  const [showLinkValues, setShowLinkValues] = useCachedValue(
-    CachedKey.showLinkValues,
-    true as boolean,
-  );
-
-  const [doAnimation, setDoAnimation] = useCachedValue(
-    CachedKey.doAnimation,
-    true as boolean,
-  );
-  const [visibleTextDistance, setVisibleTextDistance] = useCachedValue(
-    CachedKey.visibleTextDistance,
-    500 as number,
-  );
-
-  const { mode, setMode, node: layoutNode } = useDagModeSelector();
-
-  useEffect(() => {
-    rerenderGraph({ showLinkValues });
-  }, [showLinkValues, rerenderGraph]);
-
-  const graphInstance = useMemo(
-    () =>
-      createGraph({
-        onSelect: setSelectedItem,
-        highlight,
-      }),
-    [highlight, setSelectedItem],
-  );
-
-  useEffect(() => {
-    setGraphLinkTexts({
-      graph: graphInstance,
-      showLinkTexts,
-    });
-  }, [graphInstance, showLinkTexts]);
-
+  const mountRef = useRef<HTMLDivElement>(null);
+  const rendererRef = useRef<GraphRenderer | null>(null);
+  const [ready, setReady] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Only the id is held in state; the entity itself is looked up from the
+  // current graph. That keeps the inspector showing live data and removes the
+  // effect that used to clear a selection after the node disappeared.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // ------------------------------------------------------------- persisted UI
+  const [showIcons, setShowIcons] = useCachedValue(CachedKey.showIcons, true);
+  const [showNodeCaptions, setShowNodeCaptions] = useCachedValue(
+    CachedKey.showNodeCaptions,
+    true,
+  );
+  const [showLinkLabels, setShowLinkLabels] = useCachedValue(
+    CachedKey.showLinkLabels,
+    true,
+  );
+  const [showParticles, setShowParticles] = useCachedValue(
+    CachedKey.showParticles,
+    true,
+  );
+  const [bloom, setBloom] = useCachedValue(CachedKey.bloom, true);
+  const [animate, setAnimate] = useCachedValue(CachedKey.animate, true);
+  const [captionDistance, setCaptionDistance] = useCachedValue(
+    CachedKey.captionDistance,
+    500,
+  );
+  const [dagMode, setDagMode] = useCachedValue<DagMode>(
+    CachedKey.dagMode,
+    "default",
+  );
+  const [captionOverrides, setCaptionOverrides] =
+    useCachedValue<CaptionOverrides>(CachedKey.captionOverrides, {});
+
+  // Filters are scoped to this result frame, so they are deliberately not
+  // persisted — a hidden label should not silently stay hidden in a later,
+  // unrelated query.
+  const [hiddenLabels, setHiddenLabels] = useState<Set<string>>(new Set());
+  const [hiddenRelTypes, setHiddenRelTypes] = useState<Set<string>>(new Set());
+
+  const settings = useMemo<GraphSettings>(
+    () => ({
+      showIcons,
+      showNodeCaptions,
+      showLinkLabels,
+      showParticles,
+      bloom,
+      animate,
+      captionDistance,
+      dagMode,
+    }),
+    [
+      showIcons,
+      showNodeCaptions,
+      showLinkLabels,
+      showParticles,
+      bloom,
+      animate,
+      captionDistance,
+      dagMode,
+    ],
+  );
+
+  const applySettings = useCallback(
+    (next: GraphSettings) => {
+      setShowIcons(next.showIcons);
+      setShowNodeCaptions(next.showNodeCaptions);
+      setShowLinkLabels(next.showLinkLabels);
+      setShowParticles(next.showParticles);
+      setBloom(next.bloom);
+      setAnimate(next.animate);
+      setCaptionDistance(next.captionDistance);
+      setDagMode(next.dagMode);
+    },
+    [
+      setShowIcons,
+      setShowNodeCaptions,
+      setShowLinkLabels,
+      setShowParticles,
+      setBloom,
+      setAnimate,
+      setCaptionDistance,
+      setDagMode,
+    ],
+  );
+
+  // --------------------------------------------------------------- renderer
+  // Only read at construction time, so the initial value is all that matters;
+  // afterwards `setSettings` pushes changes in without rebuilding the scene.
+  const initialSettingsRef = useRef(settings);
 
   useEffect(() => {
-    if (graphDomRef.current) {
-      graphInstance(graphDomRef.current);
-      const bloomPass = new UnrealBloomPass();
-      bloomPass.strength = 0.5;
-      bloomPass.radius = 0.5;
-      bloomPass.threshold = 0;
-      graphInstance.postProcessingComposer().addPass(bloomPass);
+    const mount = mountRef.current;
+    if (!mount) {
+      return;
     }
-    return function cleanup() {
-      graphInstance.renderer()?.dispose();
-      graphInstance._destructor();
-    };
-  }, [graphDomRef, graphInstance]);
 
-  useEffect(() => {
-    function updateSize() {
-      if (graphDomRef.current) {
-        graphInstance
-          .width(
-            expanded
-              ? window.innerWidth
-              : graphDomRef.current.getBoundingClientRect().width,
-          )
-          .height(
-            expanded
-              ? window.innerHeight - 54
-              : Math.max(
-                  600,
-                  graphDomRef.current.getBoundingClientRect().height,
-                ),
-          );
-      }
-    }
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    return function cleanup() {
-      window.removeEventListener("resize", updateSize);
-    };
-  }, [graphDomRef, graphInstance, expanded]);
-
-  useEffect(() => {
-    if (doAnimation) {
-      graphInstance.resumeAnimation();
-    } else {
-      graphInstance.pauseAnimation();
-    }
-  }, [graphInstance, doAnimation]);
-
-  useEffect(() => {
-    const d = cloneDeep(graph);
-    graphInstance.graphData(d);
-  }, [graph, graphInstance]);
-
-  useEffect(() => {
-    if (selectedItem && isNode(selectedItem)) {
-      const node = selectedItem as any;
-      const distance = 60 + (node.val ?? 0);
-      const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-
-      const newPos =
-        node.x || node.y || node.z
-          ? {
-              x: node.x * distRatio,
-              y: node.y * distRatio,
-              z: node.z * distRatio,
-            }
-          : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
-
-      graphInstance.cameraPosition(
-        newPos, // new position
-        node, // lookAt ({ x, y, z })
-        2000, // ms transition duration
-      );
-    }
-  }, [graphInstance, selectedItem, graph]);
-
-  useEffect(() => {
-    graphDagMode({
-      graph: graphInstance,
-      mode,
-      onError: () => {
-        setMode("default");
-      },
+    const renderer = new GraphRenderer(mount, initialSettingsRef.current, {
+      onSelect: (item) => setSelectedId(item?.elementId ?? null),
+      onDagError: () => setDagMode("default"),
     });
-  }, [graphInstance, mode, setMode]);
+    rendererRef.current = renderer;
+    setReady(true);
 
-  useEffect(() => {
-    let camera = graphInstance.cameraPosition();
-
-    function setIcons() {
-      setGraphIcons({
-        graph: graphInstance,
-        showNodeIcons: showIcons,
-        showNodeTexts,
-        highlight,
-        visibleTextDistance,
-      });
-    }
-    const interval = setInterval(() => {
-      const new_camera = graphInstance.cameraPosition();
-      const distance = new Vector3(camera.x, camera.y, camera.z).distanceTo(
-        new Vector3(new_camera.x, new_camera.y, new_camera.z),
-      );
-      if (distance > 100) {
-        camera = new_camera;
-        setIcons();
-      }
-    }, 1000);
-
-    setIcons();
-    return function () {
-      clearInterval(interval);
+    return () => {
+      rendererRef.current = null;
+      setReady(false);
+      renderer.dispose();
     };
-  }, [highlight, graphInstance, showIcons, showNodeTexts, visibleTextDistance]);
+  }, [setDagMode]);
 
-  // clear selected item if its no longer available
   useEffect(() => {
-    if (
-      graph.nodes.find((t) => t.elementId === selectedItem?.elementId) ===
-        undefined &&
-      graph.links.find((t) => t.elementId === selectedItem?.elementId) ===
-        undefined
-    ) {
-      setSelectedItem(null);
+    rendererRef.current?.setGraph(graph);
+  }, [graph, ready]);
+
+  useEffect(() => {
+    rendererRef.current?.setSettings(settings);
+  }, [settings, ready]);
+
+  useEffect(() => {
+    rendererRef.current?.setCaptionOverrides(captionOverrides);
+  }, [captionOverrides, ready]);
+
+  useEffect(() => {
+    rendererRef.current?.setFilters(hiddenLabels, hiddenRelTypes);
+  }, [hiddenLabels, hiddenRelTypes, ready]);
+
+  // Track the container size instead of relying on window resize events, so
+  // collapsing the side panel or resizing a split view is picked up too.
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount || !ready) {
+      return;
     }
-  }, [graph, selectedItem]);
+
+    const update = () => {
+      const renderer = rendererRef.current;
+      if (!renderer) {
+        return;
+      }
+      if (expanded) {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      } else {
+        const rect = mount.getBoundingClientRect();
+        renderer.setSize(
+          rect.width || mount.clientWidth,
+          Math.max(MIN_HEIGHT, window.innerHeight - HEADER_ALLOWANCE * 3),
+        );
+      }
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(mount);
+    window.addEventListener("resize", update);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [expanded, ready]);
+
+  // Leaving full screen with Escape.
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExpanded(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [expanded]);
+
+  const selected = useMemo<INode | ILink | null>(() => {
+    if (!selectedId) {
+      return null;
+    }
+    return (
+      graph.nodes.find((node) => node.elementId === selectedId) ??
+      graph.links.find((link) => link.elementId === selectedId) ??
+      null
+    );
+  }, [graph, selectedId]);
+
+  // Fly to a node when the selection changes — but not when the same node's
+  // data is refreshed by a graph update.
+  const focusedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!selected || !isGraphNode(selected)) {
+      focusedRef.current = null;
+      return;
+    }
+    if (focusedRef.current === selected.elementId) {
+      return;
+    }
+    focusedRef.current = selected.elementId;
+    rendererRef.current?.focusNode(selected);
+  }, [selected]);
+
+  // ---------------------------------------------------------------- actions
+  const toggleIn = useCallback(
+    (setter: typeof setHiddenLabels) => (value: string) =>
+      setter((current) => {
+        const next = new Set(current);
+        if (next.has(value)) {
+          next.delete(value);
+        } else {
+          next.add(value);
+        }
+        return next;
+      }),
+    [],
+  );
+
+  const handleToggleLabel = useMemo(
+    () => toggleIn(setHiddenLabels),
+    [toggleIn],
+  );
+  const handleToggleRelType = useMemo(
+    () => toggleIn(setHiddenRelTypes),
+    [toggleIn],
+  );
+
+  const handleCaptionChange = useCallback(
+    (labelKey: string, property: string) => {
+      setCaptionOverrides((current) => {
+        const next = { ...current };
+        if (property) {
+          next[labelKey] = property;
+        } else {
+          delete next[labelKey];
+        }
+        return next;
+      });
+    },
+    [setCaptionOverrides],
+  );
+
+  const handleSearchMatches = useCallback((ids: Set<string>) => {
+    rendererRef.current?.setSearchMatches(ids);
+  }, []);
+
+  const handleExportPng = useCallback(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) {
+      return;
+    }
+    // The drawing buffer is only guaranteed to hold pixels straight after a
+    // render, so force one before reading the canvas.
+    renderer.renderFrame();
+    exportCanvasAsPng(renderer.canvas);
+  }, []);
+
   return (
-    <div
-      className={`graph-container ${!expanded ? "" : "is-position-absolute"}`}
-    >
-      <div>
-        <div className={"controls"}>
-          <label>
-            {layoutNode}
-            Layout
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={showIcons}
-              onChange={useCallback(() => {
-                setShowIcons((t) => !t);
-              }, [setShowIcons])}
-            />
-            Enable icons
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={showNodeTexts}
-              onChange={useCallback(() => {
-                setShowNodeTexts((t) => !t);
-              }, [setShowNodeTexts])}
-            />
-            Show node title
-          </label>
+    <div className={`graph-view${expanded ? " is-expanded" : ""}`}>
+      <GraphToolbar
+        settings={settings}
+        onSettingsChange={applySettings}
+        sizeMode={sizeMode}
+        onSizeModeChange={onSizeModeChange}
+        fetchLinksInBetween={fetchLinksInBetween}
+        onFetchLinksInBetweenChange={onFetchLinksInBetweenChange}
+        nodeCount={graph.nodes.length}
+        linkCount={graph.links.length}
+        expanded={expanded}
+        onToggleExpanded={() => setExpanded((value) => !value)}
+        onZoomToFit={() => rendererRef.current?.zoomToFit()}
+        onUnpinAll={() => rendererRef.current?.unpinAll()}
+        onExportPng={handleExportPng}
+        onExportJson={() => exportGraphAsJson(graph)}
+        onExportCsv={() => exportGraphAsCsv(graph)}
+      />
 
-          <label className="checkbox">
-            <input
-              type="number"
-              value={visibleTextDistance}
-              onChange={useCallback(
-                (event: React.ChangeEvent<HTMLInputElement>) => {
-                  setVisibleTextDistance(parseInt(event.currentTarget.value));
-                },
-                [setVisibleTextDistance],
-              )}
-            />
-            Distance to node to show titles
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={showLinkTexts}
-              onChange={useCallback(() => {
-                setShowLinkTexts((t) => !t);
-              }, [setShowLinkTexts])}
-            />
-            Show link titles
-          </label>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={showLinkValues}
-              onChange={useCallback(() => {
-                setShowLinkValues((t) => !t);
-              }, [setShowLinkValues])}
-            />
-            Apply link values
-          </label>
+      <div className="graph-view__canvas">
+        <GraphSearch
+          graph={graph}
+          captionOverrides={captionOverrides}
+          onMatchesChange={handleSearchMatches}
+          onPick={(node) => setSelectedId(node.elementId)}
+        />
 
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={doAnimation}
-              onChange={useCallback(() => {
-                setDoAnimation((t) => !t);
-              }, [setDoAnimation])}
-            />
-            Animate
-          </label>
-          {buttonsNode}
-        </div>
+        <GraphLegend
+          graph={graph}
+          hiddenLabels={hiddenLabels}
+          onToggleLabel={handleToggleLabel}
+          hiddenRelTypes={hiddenRelTypes}
+          onToggleRelType={handleToggleRelType}
+          captionOverrides={captionOverrides}
+          onCaptionChange={handleCaptionChange}
+        />
+
+        {selected && (
+          <GraphSidePanel
+            item={selected}
+            onClose={() => setSelectedId(null)}
+            captionOverrides={captionOverrides}
+          />
+        )}
+
+        {error && (
+          <div className="graph-view__error">
+            <i className="fas fa-triangle-exclamation" aria-hidden="true" />
+            <span className="u-truncate">{error}</span>
+            <button type="button" onClick={onDismissError} aria-label="Dismiss">
+              <i className="fas fa-xmark" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
+        <div ref={mountRef} className="graph-view__mount" />
       </div>
-      <div
-        className="expand-button"
-        onClick={useCallback(() => {
-          setExpanded((t) => !t);
-        }, [setExpanded])}
-      >
-        <div className="control">
-          <i className={`fa-solid fa-${expanded ? "compress" : "expand"}`}></i>
-        </div>
-      </div>
-      {selectedItem && <GraphSidePanel item={selectedItem} />}
-      <div ref={graphDomRef} />
     </div>
   );
 }
-
-export default GraphContainer;
-//
-// match path1=(mb_start:MaterialBatch)-[:FEEDS*0..5]->(mb:MaterialBatch {batch_id: "R66011", first_receipt_site_id: "GU09", material_id: "F00573015020P" })-[:FEEDS*0..5]->(mb_end:MaterialBatch)
-// where length(path1) >= 1
-//  optional match path2=(start:Vendor)-->(mb_start)
-//     optional match path3=(mb_end)-->(end:Customer)
-//     with apoc.path.combine(apoc.path.combine(path2 , path1) , path3) as path
-//     unwind nodes(path) as n
-//     unwind relationships(path) as r
-//     WITH collect(DISTINCT n) as nodes, collect(DISTINCT r) as rels
-//     return {nodes: nodes, rels:rels} as r
-
-// match path1=(mb_start:MaterialBatch)-[:FEEDS*0..5]->(mb:MaterialBatch {batch_id: "323100", first_receipt_site_id: "IT03", material_id: "F000129372" })-[:FEEDS*0..5]->(mb_end:MaterialBatch)

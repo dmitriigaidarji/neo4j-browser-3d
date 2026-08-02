@@ -1,0 +1,35 @@
+// Shared design tokens. Colour values live as CSS custom properties so both
+// themes can be served from one stylesheet without duplicating rules.
+:root {
+  --app-radius: 10px;
+  --app-radius-sm: 6px;
+  --app-gap: 12px;
+  --app-header-height: 52px;
+  --app-panel-width: 340px;
+  --app-panel-collapsed: 44px;
+  --app-transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --app-canvas: #05070d;
+  --app-surface: #11151f;
+  --app-surface-2: #161c29;
+  --app-border: #26304a;
+  --app-text: #e6ecf7;
+  --app-text-dim: #8e9bb5;
+  --app-accent: #4cc9f0;
+  --app-accent-strong: #22a7d0;
+  --app-danger: #ff5c7a;
+  --app-shadow: 0 8px 30px rgb(0 0 0 / 45%);
+}
+
+:root[data-theme="light"] {
+  --app-canvas: #05070d; // the 3D canvas stays dark in both themes
+  --app-surface: #ffffff;
+  --app-surface-2: #f2f5fa;
+  --app-border: #d8dfeb;
+  --app-text: #161d2b;
+  --app-text-dim: #5d6b85;
+  --app-accent: #1573a6;
+  --app-accent-strong: #0d5980;
+  --app-danger: #c92a4c;
+  --app-shadow: 0 8px 24px rgb(20 30 60 / 12%);
+}

@@ -1,46 +1,84 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# Publishes the production site to the `gh-pages` branch.
+#
+# Requires repository Settings -> Pages -> Source = "Deploy from a branch",
+# branch `gh-pages`, folder `/ (root)`. Branch publishing (rather than the
+# "GitHub Actions" source) is what lets per-PR previews live alongside
+# production under /pr-preview/ — see pr-preview.yml.
+name: Deploy to Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Serialised with the preview workflow: both push to the same branch.
 concurrency:
-  group: "pages"
+  group: gh-pages-publish
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install and Build 🔧
-        run: |
-          npm install
-          npm run build
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+
+      - uses: actions/setup-node@v4
         with:
-          path: "build"
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Published with plain git rather than a third-party action: it is the
+      # whole deployment in twenty auditable lines, and it can replace the
+      # production files while leaving the /pr-preview/ tree untouched (a
+      # "keep everything" publish would never prune superseded hashed assets).
+      - name: Publish to gh-pages
+        run: |
+          set -euo pipefail
+          git config --global user.name  "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages --depth=1
+            git worktree add ../pages gh-pages
+          else
+            git worktree add --detach ../pages
+            git -C ../pages checkout --orphan gh-pages
+            git -C ../pages reset --hard
+          fi
+
+          # Clear production files, preserving PR previews and git metadata.
+          find ../pages -mindepth 1 -maxdepth 1 \
+            ! -name '.git' ! -name 'pr-preview' -exec rm -rf {} +
+
+          cp -r dist/. ../pages/
+          touch ../pages/.nojekyll
+
+          cd ../pages
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Site unchanged; nothing to publish."
+            exit 0
+          fi
+          git commit -m "deploy: ${GITHUB_SHA::7}"
+
+          # The preview workflow writes to the same branch, so a concurrent
+          # push can land between fetch and push.
+          for attempt in 1 2 3; do
+            if git push origin gh-pages; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $attempt), rebasing on latest."
+            git pull --rebase origin gh-pages
+          done
+          echo "Could not publish after 3 attempts." >&2
+          exit 1

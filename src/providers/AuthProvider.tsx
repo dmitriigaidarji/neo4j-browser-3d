@@ -1,85 +1,103 @@
-import React, { createContext, PropsWithChildren, useCallback } from "react";
+import {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from "react";
+import neo4j, { type Driver, type ServerInfo } from "neo4j-driver";
 import LoginContainer from "../containers/login/LoginContainer";
-import neo4j, { Driver, ServerInfo } from "neo4j-driver";
 import SessionProvider from "./SessionProvider";
 
-interface IAuthContext {
-  connect: (props: {
-    url: string;
-    username: string;
-    password: string;
-    protocol: string;
-    database?: string;
-  }) => Promise<ServerInfo>;
-  disconnect: () => void;
-  serverInfo: IConnectionInfo | null;
+export interface ConnectionParams {
+  protocol: string;
+  url: string;
+  username: string;
+  password: string;
+  database?: string;
 }
 
 export interface IConnectionInfo extends ServerInfo {
   username: string;
   database: string;
+  protocol: string;
+  url: string;
+}
+
+interface IAuthContext {
+  connect: (params: ConnectionParams) => Promise<void>;
+  disconnect: () => void;
+  serverInfo: IConnectionInfo | null;
 }
 
 export const AuthContext = createContext<IAuthContext>({
-  connect: () => Promise.resolve({}),
+  connect: async () => {},
   disconnect: () => {},
   serverInfo: null,
 });
 
 function AuthProvider({ children }: PropsWithChildren) {
-  const [driver, setDriver] = React.useState<Driver | null>(null);
-  const [serverInfo, setServerInfo] = React.useState<IConnectionInfo | null>(
-    null,
-  );
+  const [driver, setDriver] = useState<Driver | null>(null);
+  const [serverInfo, setServerInfo] = useState<IConnectionInfo | null>(null);
+  const driverRef = useRef<Driver | null>(null);
+
+  useEffect(() => {
+    driverRef.current = driver;
+  }, [driver]);
 
   const connect: IAuthContext["connect"] = useCallback(
-    ({ url, username, password, database, protocol }) => {
-      const driver = neo4j.driver(
+    async ({ protocol, url, username, password, database }) => {
+      const candidate = neo4j.driver(
         protocol + url,
         neo4j.auth.basic(username, password),
-        {
-          disableLosslessIntegers: true,
-        },
+        { disableLosslessIntegers: true },
       );
-      return driver.verifyConnectivity({ database }).then((s) => {
+
+      try {
+        // driver v6 changed `verifyConnectivity` to resolve with void, so the
+        // server details come from `getServerInfo`, which also proves the
+        // connection works.
+        const info = await candidate.getServerInfo({ database });
         setServerInfo({
-          ...s,
+          ...info,
           username,
-          database: database ?? "neo4j",
+          protocol,
+          url,
+          database: database || "neo4j",
         });
-        setDriver(driver);
-        return s;
-      });
+        setDriver(candidate);
+      } catch (error) {
+        // A driver that never connected still holds a connection pool and a
+        // keep-alive timer; the previous version leaked one per failed attempt.
+        await candidate.close().catch(() => {});
+        throw error;
+      }
     },
     [],
   );
 
   const disconnect = useCallback(() => {
-    if (driver) {
-      driver.close();
-    }
+    driverRef.current?.close().catch(() => {});
+    driverRef.current = null;
     setDriver(null);
-  }, [driver]);
+    setServerInfo(null);
+  }, []);
 
-  const value: IAuthContext = React.useMemo(
-    () => ({
-      connect,
-      disconnect,
-      serverInfo,
-    }),
+  // Close the driver when the app unmounts so sockets are not left open.
+  useEffect(
+    () => () => {
+      driverRef.current?.close().catch(() => {});
+    },
+    [],
+  );
+
+  const value = useMemo<IAuthContext>(
+    () => ({ connect, disconnect, serverInfo }),
     [connect, disconnect, serverInfo],
   );
 
-  React.useEffect(() => {
-    if (!driver) {
-      setServerInfo(null);
-    }
-    // return function cleanup() {
-    //   if (driver) {
-    //     driver.close();
-    //   }
-    // };
-  }, [driver]);
   return (
     <AuthContext.Provider value={value}>
       {driver && serverInfo ? (

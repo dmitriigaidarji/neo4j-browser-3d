@@ -1,0 +1,127 @@
+// Icons are bundled rather than pulled from a CDN: the UI is icon-driven, so
+// a blocked or unreachable CDN previously left every control unlabelled, and
+// it leaked a request to a third party on every page load.
+// The font path is relative to this file so Vite resolves the woff2, emits it
+// as a hashed asset and serves it in dev as well as in the build. Only the
+// "solid" face is loaded — it is the only one the UI references.
+@use "@fortawesome/fontawesome-free/scss/variables" as fa-vars with (
+  $font-path: "../../node_modules/@fortawesome/fontawesome-free/webfonts"
+);
+@use "@fortawesome/fontawesome-free/scss/fontawesome" as fa;
+@use "@fortawesome/fontawesome-free/scss/solid" as fa-solid;
+
+// Only the Bulma modules this app actually renders. Importing the whole
+// framework shipped ~700 kB of CSS, most of it for components we never use
+// (navbar, modal, card, pagination, columns, the full helper matrix).
+@use "bulma/sass/utilities";
+@use "bulma/sass/themes";
+@use "bulma/sass/base";
+@use "bulma/sass/form";
+@use "bulma/sass/elements/button";
+@use "bulma/sass/elements/icon";
+@use "bulma/sass/elements/notification";
+@use "bulma/sass/elements/progress";
+@use "bulma/sass/elements/table";
+@use "bulma/sass/elements/tag";
+@use "bulma/sass/components/message";
+@use "bulma/sass/helpers/typography";
+
+@use "variables";
+@use "layout";
+@use "login";
+@use "panel";
+@use "frame";
+@use "graph";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--app-surface-2);
+  color: var(--app-text);
+}
+
+code,
+pre,
+.is-family-monospace {
+  font-family:
+    "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+}
+
+// Bulma's own tokens follow the app palette so its components inherit the
+// theme instead of shipping their default indigo/white look.
+:root {
+  --bulma-body-background-color: var(--app-surface-2);
+  --bulma-body-color: var(--app-text);
+  --bulma-scheme-main: var(--app-surface);
+  --bulma-scheme-main-bis: var(--app-surface-2);
+  --bulma-border: var(--app-border);
+  --bulma-border-weak: var(--app-border);
+  --bulma-text: var(--app-text);
+  --bulma-text-weak: var(--app-text-dim);
+  --bulma-text-strong: var(--app-text);
+  --bulma-link-h: 194deg;
+  --bulma-link-s: 85%;
+  --bulma-link-l: 43%;
+  --bulma-input-background-color: var(--app-surface-2);
+  --bulma-input-border-color: var(--app-border);
+  --bulma-input-color: var(--app-text);
+  --bulma-input-placeholder-color: var(--app-text-dim);
+  --bulma-table-background-color: transparent;
+  --bulma-table-cell-border-color: var(--app-border);
+}
+
+.session-root {
+  display: contents;
+}
+
+.error-boundary {
+  margin: 24px;
+
+  .message-header {
+    justify-content: space-between;
+  }
+}
+
+// Utility helpers used across containers.
+.u-scroll-y {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.u-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.u-muted {
+  color: var(--app-text-dim);
+}
+
+// A focus ring that is visible on both themes, for the many icon-only buttons.
+:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}

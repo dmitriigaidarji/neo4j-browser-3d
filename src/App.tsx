@@ -1,17 +1,16 @@
-import React from "react";
-import "./App.css";
 import AuthProvider from "./providers/AuthProvider";
-import "bulma/bulma.scss";
+import ThemeProvider from "./providers/ThemeProvider";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Layout from "./containers/layout/Layout";
 
-function App() {
+export default function App() {
   return (
-    <div className="App">
-      <AuthProvider>
-        <Layout />
-      </AuthProvider>
-    </div>
+    <ThemeProvider>
+      <ErrorBoundary title="Neo4j Browser 3D crashed">
+        <AuthProvider>
+          <Layout />
+        </AuthProvider>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }
-
-export default App;
