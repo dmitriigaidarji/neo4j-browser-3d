@@ -4,6 +4,11 @@
 # branch `gh-pages`, folder `/ (root)`. Branch publishing (rather than the
 # "GitHub Actions" source) is what lets per-PR previews live alongside
 # production under /pr-preview/ — see pr-preview.yml.
+#
+# Custom domain: with branch publishing, the domain is configured by a CNAME
+# file at the published root, not just by the repository setting. It is kept
+# in `public/CNAME` so every build emits it into dist/ and it survives the
+# root replacement below. Deleting that file would unset the custom domain.
 name: Deploy to Pages
 
 on:
@@ -62,6 +67,13 @@ jobs:
 
           cp -r dist/. ../pages/
           touch ../pages/.nojekyll
+
+          # Losing this file silently drops the custom domain and sends the
+          # site back to <owner>.github.io/<repo>, so fail loudly instead.
+          if [ -f public/CNAME ] && [ ! -s ../pages/CNAME ]; then
+            echo "public/CNAME exists but did not reach the published root." >&2
+            exit 1
+          fi
 
           cd ../pages
           git add -A

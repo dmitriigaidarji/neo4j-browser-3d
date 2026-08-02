@@ -112,6 +112,22 @@ branch `gh-pages`, folder `/ (root)`.
 The build uses a relative base path, so it works unchanged from a domain root,
 a project page, or a preview subdirectory.
 
+### Custom domain
+
+The site is served from `browser.gaidarji.com`, configured by `public/CNAME`.
+
+Branch-based publishing takes the custom domain from a `CNAME` file at the
+published root rather than from the repository setting alone, so that file has
+to be part of every production build — which is why it lives in `public/` and
+why the deploy workflow fails if it does not reach the root. Removing it would
+send the site back to `<owner>.github.io/<repo>`.
+
+When switching the Pages source over for the first time, **merge to `main`
+first** so the deploy populates `gh-pages` with the site and its `CNAME`, then
+change the setting. Flipping it while the branch root is still empty leaves
+the domain with nothing to serve. Re-check **Enforce HTTPS** afterwards; it can
+need a moment to re-issue the certificate.
+
 ## Tech stack
 
 React 19 · TypeScript 5 · Vite 8 · three.js · neo4j-driver 6 · Bulma ·
