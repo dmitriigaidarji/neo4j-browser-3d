@@ -10,30 +10,42 @@ import {
 import { SessionContext } from "../../providers/SessionProvider";
 import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
 import {
+  expandAllNeighbours,
   expandNeighbours,
   fetchRelationshipsBetween,
   type IRelatedLinkOption,
 } from "../../graph/queries";
-import { postProcessGraph, removeNodeFromGraph } from "../../graph/model";
+import {
+  postProcessGraph,
+  removeNodeFromGraph,
+  removeNodesFromGraph,
+} from "../../graph/model";
 import { EMPTY_GRAPH, type IGraph, type NodeSizeMode } from "../../graph/types";
 import GraphContainer from "./GraphContainer";
+
+/** Cap for "show all neighbours", matching the per-pattern picker's limit. */
+const ALL_NEIGHBOURS_LIMIT = 300;
 
 export interface IGraphContext {
   graph: IGraph;
   removeNode: (elementId: string) => void;
+  removeNodes: (elementIds: string[]) => void;
   expand: (params: {
     sourceNode: string;
     link: IRelatedLinkOption;
     add: string[];
     remove: string[];
   }) => Promise<void>;
+  expandAll: (elementId: string) => Promise<void>;
   busy: boolean;
 }
 
 export const GraphContext = createContext<IGraphContext>({
   graph: EMPTY_GRAPH,
   removeNode: () => {},
+  removeNodes: () => {},
   expand: async () => {},
+  expandAll: async () => {},
   busy: false,
 });
 
@@ -128,6 +140,15 @@ export default function GraphProcessedContainer({
     [sizeMode],
   );
 
+  const removeNodes = useCallback(
+    (elementIds: string[]) => {
+      setGraph((current) =>
+        removeNodesFromGraph(current, elementIds, sizeMode),
+      );
+    },
+    [sizeMode],
+  );
+
   const expand = useCallback<IGraphContext["expand"]>(
     async ({ sourceNode, link, add, remove }) => {
       setBusy(true);
@@ -154,9 +175,33 @@ export default function GraphProcessedContainer({
     [getSession, graph, sizeMode],
   );
 
+  const expandAll = useCallback<IGraphContext["expandAll"]>(
+    async (elementId) => {
+      setBusy(true);
+      setError(null);
+      const session = getSession();
+      try {
+        const next = await expandAllNeighbours({
+          session,
+          graph,
+          elementId,
+          sizeMode,
+          limit: ALL_NEIGHBOURS_LIMIT,
+        });
+        setGraph(next);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : String(caught));
+      } finally {
+        await session.close().catch(() => {});
+        setBusy(false);
+      }
+    },
+    [getSession, graph, sizeMode],
+  );
+
   const contextValue = useMemo<IGraphContext>(
-    () => ({ graph, removeNode, expand, busy }),
-    [graph, removeNode, expand, busy],
+    () => ({ graph, removeNode, removeNodes, expand, expandAll, busy }),
+    [graph, removeNode, removeNodes, expand, expandAll, busy],
   );
 
   if (graph.nodes.length === 0) {

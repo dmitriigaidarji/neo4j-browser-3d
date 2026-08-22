@@ -4,6 +4,7 @@ import {
   extractGraph,
   postProcessGraph,
   removeNodeFromGraph,
+  removeNodesFromGraph,
   summariseLabels,
   summariseRelationships,
 } from "./model";
@@ -131,6 +132,32 @@ describe("removeNodeFromGraph", () => {
     const pruned = removeNodeFromGraph(graph, "1", "uniform");
     expect(pruned.nodes.map((n) => n.elementId)).toEqual(["2"]);
     expect(pruned.links).toHaveLength(0);
+  });
+});
+
+describe("removeNodesFromGraph", () => {
+  it("removes every listed node along with their relationships", () => {
+    const graph = postProcessGraph(
+      extractGraph([
+        node("1", ["A"]),
+        node("2", ["B"]),
+        node("3", ["B"]),
+        rel("10", "R", "1", "2"),
+        rel("11", "R", "1", "3"),
+        rel("12", "R", "2", "3"),
+      ]),
+    );
+    const pruned = removeNodesFromGraph(graph, ["2", "3"], "uniform");
+    expect(pruned.nodes.map((n) => n.elementId)).toEqual(["1"]);
+    expect(pruned.links).toHaveLength(0);
+  });
+
+  it("returns the graph unchanged for an empty list", () => {
+    const graph = postProcessGraph(
+      extractGraph([node("1", ["A"]), node("2", ["B"])]),
+    );
+    const pruned = removeNodesFromGraph(graph, [], "uniform");
+    expect(pruned.nodes.map((n) => n.elementId)).toEqual(["1", "2"]);
   });
 });
 

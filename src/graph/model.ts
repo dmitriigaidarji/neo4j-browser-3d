@@ -326,13 +326,25 @@ export function removeNodeFromGraph(
   elementId: string,
   sizeMode: NodeSizeMode,
 ): IGraph {
+  return removeNodesFromGraph(graph, [elementId], sizeMode);
+}
+
+export function removeNodesFromGraph(
+  graph: IGraph,
+  elementIds: string[],
+  sizeMode: NodeSizeMode,
+): IGraph {
+  if (elementIds.length === 0) {
+    return graph;
+  }
+  const removed = new Set(elementIds);
   return postProcessGraph(
     {
-      nodes: graph.nodes.filter((node) => node.elementId !== elementId),
+      nodes: graph.nodes.filter((node) => !removed.has(node.elementId)),
       links: graph.links.filter(
         (link) =>
-          link.startNodeElementId !== elementId &&
-          link.endNodeElementId !== elementId,
+          !removed.has(link.startNodeElementId) &&
+          !removed.has(link.endNodeElementId),
       ),
     },
     sizeMode,

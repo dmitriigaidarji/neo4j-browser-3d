@@ -186,13 +186,59 @@ export async function expandNeighbours({
   return postProcessGraph({ nodes, links }, sizeMode);
 }
 
+/**
+ * Add every one-hop neighbour of `elementId` (any relationship type, both
+ * directions) to the graph.
+ */
+export async function expandAllNeighbours({
+  session,
+  graph,
+  elementId,
+  sizeMode,
+  limit,
+}: {
+  session: Session;
+  graph: IGraph;
+  elementId: string;
+  sizeMode: NodeSizeMode;
+  limit: number;
+}): Promise<IGraph> {
+  const result = await session.run(
+    `MATCH (n)-[l]-(m)
+     WHERE elementId(n) = $elementId
+     RETURN DISTINCT l, m
+     LIMIT $limit`,
+    // LIMIT rejects a float, and the driver encodes plain JS numbers as floats.
+    { elementId, limit: int(limit) },
+  );
+
+  const discovered = extractGraph(
+    result.records.flatMap((record) => [record.get("l"), record.get("m")]),
+  );
+
+  const knownNodes = new Set(graph.nodes.map((node) => node.elementId));
+  const knownLinks = new Set(graph.links.map((entry) => entry.elementId));
+
+  const nodes = [
+    ...graph.nodes,
+    ...discovered.nodes.filter((node) => !knownNodes.has(node.elementId)),
+  ];
+  const links = [
+    ...graph.links,
+    ...discovered.links.filter((entry) => !knownLinks.has(entry.elementId)),
+  ];
+
+  return postProcessGraph({ nodes, links }, sizeMode);
+}
+
 /** Labels, relationship types and property keys, for editor autocompletion. */
 export async function fetchSchema(session: Session) {
-  const [labels, relationshipTypes, propertyKeys] = await Promise.all([
-    session.run("CALL db.labels()"),
-    session.run("CALL db.relationshipTypes()"),
-    session.run("CALL db.propertyKeys()"),
-  ]);
+  // Sequential, not `Promise.all`: driver v6 rejects a second query issued on a
+  // session that still has work in flight ("Queries cannot be run directly on a
+  // session with ongoing work"), which made schema introspection fail outright.
+  const labels = await session.run("CALL db.labels()");
+  const relationshipTypes = await session.run("CALL db.relationshipTypes()");
+  const propertyKeys = await session.run("CALL db.propertyKeys()");
 
   return {
     labels: labels.records.map((r) => r.get("label") as string),
