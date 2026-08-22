@@ -84,6 +84,12 @@ export class GraphRenderer {
 
   /** Cached caption elements, keyed by node id, invalidated by generation. */
   private captionCache = new Map<string, CSS2DObject>();
+  /**
+   * The hovered node's caption. It is built fresh every refresh (it carries
+   * extra content, so it is never cached) which means nothing else holds a
+   * reference to the previous one to take it back off screen.
+   */
+  private hoverCaption: CSS2DObject | null = null;
   private captionGeneration = 0;
   private readonly linkSprites = new Set<SpriteText>();
 
@@ -274,8 +280,13 @@ export class GraphRenderer {
         this.highlightNodes.add(link.target);
       }
     }
+    const hadHoveredNode = this.hoveredNode !== null;
     this.hoveredNode = null;
     this.refreshStyles();
+    if (hadHoveredNode) {
+      // Otherwise the richer hover label stays behind on the node just left.
+      this.refreshCaptions();
+    }
   }
 
   /** Re-evaluate the styling accessors without rebuilding the scene graph. */
@@ -382,6 +393,24 @@ export class GraphRenderer {
       visible.add(this.hoveredNode);
     }
 
+    if (!this.hoveredNode) {
+      // Hover ended altogether: the accessor below never revisits the node it
+      // was on, so the richer label it produced has to be dropped here.
+      this.releaseCaption(this.hoverCaption);
+      this.hoverCaption = null;
+    }
+
+    // Nodes that moved out of range, were filtered away, or left the graph are
+    // never handed to the accessor again, so their caption has to come down
+    // here or it stays on screen as a label with no node under it.
+    const visibleIds = new Set([...visible].map((node) => node.elementId));
+    for (const [key, object] of [...this.captionCache]) {
+      if (!visibleIds.has(key.slice(key.indexOf(":") + 1))) {
+        this.releaseCaption(object);
+        this.captionCache.delete(key);
+      }
+    }
+
     const generation = this.captionGeneration;
     this.instance.nodeThreeObject(((input: unknown) => {
       const node = input as INode;
@@ -396,18 +425,46 @@ export class GraphRenderer {
         if (cached) {
           return cached as never;
         }
+      } else {
+        // Replacing this node's plain caption, and any hover caption left from
+        // the node hovered before it.
+        this.releaseCaption(this.captionCache.get(cacheKey) ?? null);
+        this.captionCache.delete(cacheKey);
+        this.releaseCaption(this.hoverCaption);
+        this.hoverCaption = null;
       }
       const object = new CSS2DObject(this.buildCaptionElement(node));
       if (node !== this.hoveredNode) {
         this.captionCache.set(cacheKey, object);
+      } else {
+        this.hoverCaption = object;
       }
       return object as never;
     }) as never);
   }
 
+  /**
+   * Take a caption off screen for good.
+   *
+   * `removeFromParent` is the important half: `CSS2DObject` removes its own
+   * DOM element in response to the `removed` event, and three-forcegraph drops
+   * a node by removing the *group* the caption hangs under, which never fires
+   * that event on the child. Removing only the element leaves the object in
+   * the scene, and the renderer simply re-appends it on the next frame.
+   */
+  private releaseCaption(object: CSS2DObject | null) {
+    if (!object) {
+      return;
+    }
+    object.removeFromParent();
+    object.element.remove();
+  }
+
   private clearCaptionCache() {
-    this.captionCache.forEach((object) => object.element.remove());
+    this.captionCache.forEach((object) => this.releaseCaption(object));
     this.captionCache.clear();
+    this.releaseCaption(this.hoverCaption);
+    this.hoverCaption = null;
   }
 
   /** Invalidate cached caption DOM after a setting or caption change. */

@@ -50,12 +50,16 @@ export default function FrameContainer({
   // Identifies the newest run so a slow earlier query cannot overwrite it.
   const runId = useRef(0);
   const mounted = useRef(true);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    // Re-arming on mount matters: React re-mounts components (StrictMode in
+    // development, and any remount in production), and a ref that is only ever
+    // set to `false` on cleanup stays `false` for the rest of the component's
+    // life — silently discarding every result and leaving the frame spinning.
+    mounted.current = true;
+    return () => {
       mounted.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   const runQuery = useCallback(
     async (query: string) => {

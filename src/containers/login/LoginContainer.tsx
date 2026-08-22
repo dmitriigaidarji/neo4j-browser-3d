@@ -1,6 +1,10 @@
 import { useCallback, useContext, useState, type FormEvent } from "react";
 import { AuthContext } from "../../providers/AuthProvider";
-import useCachedValue, { CachedKey } from "../../hooks/useCachedValue";
+import {
+  CachedKey,
+  readCachedValue,
+  writeCachedValue,
+} from "../../hooks/useCachedValue";
 
 const PROTOCOLS = ["neo4j://", "neo4j+s://", "bolt://", "bolt+s://"] as const;
 
@@ -22,9 +26,16 @@ export default function LoginContainer() {
   const { connect } = useContext(AuthContext);
   // The protocol was previously the only field not remembered, so every
   // reconnection to an Aura instance had to be re-selected by hand.
-  const [remembered, setRemembered] = useCachedValue<RememberedConnection>(
-    CachedKey.connection,
-    DEFAULT_CONNECTION,
+  //
+  // Read once, and persist by writing straight to storage rather than through
+  // `useCachedValue`: that hook saves from an effect, and a successful connect
+  // unmounts this form immediately (AuthProvider swaps in the session UI), so
+  // the effect never ran and nothing was ever remembered.
+  const [remembered] = useState(() =>
+    readCachedValue<RememberedConnection>(
+      CachedKey.connection,
+      DEFAULT_CONNECTION,
+    ),
   );
 
   const [loading, setLoading] = useState(false);
@@ -58,7 +69,7 @@ export default function LoginContainer() {
         });
         // Only remember details that actually worked. The old code chained
         // `.then()` after `.catch()`, so failed attempts were saved too.
-        setRemembered({
+        writeCachedValue<RememberedConnection>(CachedKey.connection, {
           protocol: data.protocol,
           url,
           username: data.username?.trim() ?? "",
@@ -72,7 +83,7 @@ export default function LoginContainer() {
         setLoading(false);
       }
     },
-    [connect, setRemembered],
+    [connect],
   );
 
   return (
